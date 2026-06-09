@@ -13,24 +13,20 @@ Archivos de despliegue incluidos:
 
 ## Paso 1 — Subir el proyecto a GitHub
 
-Desde la carpeta del proyecto:
+> ✅ Ya está todo commiteado en tu repo local (rama `main`, sin incluir `venv/`
+> ni archivos personales). Solo falta crear el repo remoto y hacer push.
 
-```bash
-git init
-git add .
-git commit -m "CV Optimizer ATS - listo para deploy"
-```
-
-Crea un repo en https://github.com/new (por ejemplo `cv-optimizer-ats`) y luego:
+1. Crea un repo vacío en https://github.com/new (por ejemplo `cv-optimizer-ats`).
+   **No** marques "Add a README" (ya tienes uno).
+2. Desde la carpeta del proyecto, conecta el remoto y sube:
 
 ```bash
 git remote add origin https://github.com/TU_USUARIO/cv-optimizer-ats.git
-git branch -M main
 git push -u origin main
 ```
 
-> El `.gitignore` ya excluye `venv/` y archivos `.docx`/`.pdf`, así que no subirás
-> el entorno virtual ni CVs personales.
+> Si GitHub te pide credenciales, usa tu usuario y un **Personal Access Token**
+> (Settings → Developer settings → Tokens) como contraseña.
 
 ---
 
