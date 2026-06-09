@@ -21,3 +21,8 @@ __pycache__/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# CVs / documentos personales (evita subir datos privados por accidente)
+*.docx
+*.pdf
+!static/**

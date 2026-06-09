@@ -1,0 +1,10 @@
+# Blueprint de Render — deploy automatico al conectar el repo.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: cv-optimizer-ats
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true

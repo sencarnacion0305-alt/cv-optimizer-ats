@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV Optimizer ATS</title>
+  <style>
+    /* ── Reset & variables ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2e3244;
+      --accent:   #6c63ff;
+      --accent2:  #a78bfa;
+      --green:    #22c55e;
+      --orange:   #f59e0b;
+      --red:      #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #8892a4;
+      --radius:   12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Header ────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: .4rem;
+      font-size: .95rem;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 700px) { .input-grid { grid-template-columns: 1fr; } }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .card label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: .6rem;
+    }
+    textarea {
+      width: 100%;
+      height: 220px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .9rem;
+      line-height: 1.6;
+      padding: .75rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    /* ── Upload button ──────────────────────────────────────────── */
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-top: .6rem;
+    }
+    .btn-upload {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: .8rem;
+      padding: .35rem .8rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-upload:hover { border-color: var(--accent); color: var(--accent2); }
+    .upload-status {
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .upload-status.ok  { color: #86efac; }
+    .upload-status.err { color: #fca5a5; }
+
+    /* ── Button ─────────────────────────────────────────────────── */
+    .btn-wrap { text-align: center; margin: 1.5rem 0; }
+    button#analizar {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: .85rem 3rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      letter-spacing: .03em;
+    }
+    button#analizar:hover  { opacity: .9; transform: translateY(-1px); }
+    button#analizar:active { transform: translateY(0); }
+    button#analizar:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Spinner ─────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: .5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ───────────────────────────────────────────────────── */
+    #error-box {
+      display: none;
+      background: rgba(239,68,68,.1);
+      border: 1px solid rgba(239,68,68,.4);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      color: #fca5a5;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Results ─────────────────────────────────────────────────── */
+    #resultados { display: none; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 700px) { .results-grid { grid-template-columns: 1fr; } }
+
+    /* Score card */
+    .score-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .score-card .score-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    /* Circular score */
+    .score-circle-wrap { position: relative; display: inline-block; }
+    .score-circle {
+      width: 130px; height: 130px;
+      transform: rotate(-90deg);
+    }
+    .score-circle .track {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 10;
+    }
+    .score-circle .fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 339.3;
+      stroke-dashoffset: 339.3;
+      transition: stroke-dashoffset 1.2s ease, stroke .6s ease;
+    }
+    .score-number {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    .score-desc {
+      margin-top: .75rem;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+
+    /* Keywords */
+    .kw-section { margin-top: 1.25rem; text-align: left; }
+    .kw-section h4 {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip {
+      font-size: .78rem;
+      font-weight: 500;
+      padding: .25rem .65rem;
+      border-radius: 50px;
+    }
+    .chip-green { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.3); }
+    .chip-orange { background: rgba(245,158,11,.12); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+
+    /* Right column */
+    .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* CV adaptado */
+    .cv-section .card-title {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: .9rem;
+    }
+    .cv-resumen {
+      font-size: .93rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .cv-subsection { margin-top: 1rem; }
+    .cv-subsection h4 {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--accent2);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: .5rem;
+    }
+    .cv-subsection ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+    .cv-subsection ul li {
+      font-size: .88rem;
+      color: var(--text);
+      padding-left: 1rem;
+      position: relative;
+    }
+    .cv-subsection ul li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    /* Notas */
+    .notas-list {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .nota-item {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+      background: rgba(108,99,255,.06);
+      border: 1px solid rgba(108,99,255,.15);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+    .nota-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+
+    /* ── CV generado ─────────────────────────────────────────────── */
+    .cv-generado-card { margin-top: 1.5rem; }
+    .cv-generado-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    .cv-generado-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .cv-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .45rem 1rem;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-action:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-copy     { background: rgba(108,99,255,.2); color: var(--accent2); border: 1px solid rgba(108,99,255,.35); }
+    .btn-download { background: rgba(34,197,94,.15); color: #86efac;       border: 1px solid rgba(34,197,94,.3); }
+    .btn-generar  { background: linear-gradient(135deg,var(--accent),var(--accent2)); color: #fff; }
+    #cv-generado-texto {
+      width: 100%;
+      height: 360px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      font-size: .82rem;
+      line-height: 1.65;
+      padding: 1rem;
+      resize: vertical;
+      outline: none;
+    }
+    #cv-generado-texto:focus { border-color: var(--accent); }
+    .kw-incorporadas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      margin-top: .75rem;
+      align-items: center;
+    }
+    .kw-incorporadas span.label {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-right: .2rem;
+    }
+    .chip-purple {
+      background: rgba(108,99,255,.15);
+      color: var(--accent2);
+      border: 1px solid rgba(108,99,255,.3);
+    }
+    #generar-status {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: .5rem;
+      min-height: 1.2em;
+    }
+
+    /* Section title */
+    .section-title {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: .75rem;
+    }
+
+    /* ── Tabs ──────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: .5rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: .6rem 1.4rem;
+      font-size: .92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s ease;
+    }
+    .tab-btn:hover { color: var(--text); border-color: var(--accent); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border-color: transparent;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── ATS report ────────────────────────────────────────────── */
+    .ats-dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      transition: border-color .2s ease, background .2s ease;
+      cursor: pointer;
+    }
+    .ats-dropzone:hover { border-color: var(--accent); background: rgba(108,99,255,.05); }
+    .ats-dropzone .big-icon { font-size: 2.5rem; display: block; margin-bottom: .75rem; }
+    .ats-dropzone .hint { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
+
+    .ats-summary {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .ats-summary .score-circle-wrap { flex-shrink: 0; }
+    .ats-summary-text { flex: 1; min-width: 220px; }
+    .ats-summary-text h3 { font-size: 1.3rem; margin-bottom: .35rem; }
+    .ats-summary-text p { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+    .ats-badges { display: flex; gap: .6rem; margin-top: .75rem; flex-wrap: wrap; }
+    .ats-badge {
+      font-size: .8rem; font-weight: 600;
+      padding: .25rem .7rem; border-radius: 999px;
+    }
+    .ats-badge.err  { background: rgba(239,68,68,.15);  color: #fca5a5; }
+    .ats-badge.warn { background: rgba(245,158,11,.15); color: #fcd34d; }
+    .ats-badge.ok   { background: rgba(34,197,94,.15);  color: #86efac; }
+
+    .ats-cat { margin-top: 1.25rem; }
+    .ats-cat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: .6rem;
+    }
+    .ats-cat-header .name { font-weight: 700; font-size: 1rem; }
+    .ats-cat-header .pts {
+      font-size: .82rem; color: var(--muted);
+      background: var(--bg); padding: .2rem .6rem; border-radius: 999px;
+    }
+    .ats-cat-bar {
+      height: 6px; background: var(--bg); border-radius: 999px;
+      overflow: hidden; margin-bottom: .85rem;
+    }
+    .ats-cat-bar > span { display: block; height: 100%; border-radius: 999px; transition: width .5s ease; }
+    .ats-check {
+      display: flex; gap: .7rem; padding: .6rem .8rem;
+      border-radius: 8px; margin-bottom: .5rem;
+      background: var(--bg); border-left: 3px solid var(--border);
+    }
+    .ats-check.ok    { border-left-color: var(--green); }
+    .ats-check.warning { border-left-color: var(--orange); }
+    .ats-check.error { border-left-color: var(--red); }
+    .ats-check .ico { font-size: 1.05rem; flex-shrink: 0; }
+    .ats-check .body .t { font-weight: 600; font-size: .9rem; margin-bottom: .15rem; }
+    .ats-check .body .d { color: var(--muted); font-size: .82rem; line-height: 1.45; }
+
+    /* ── Parsing (vista del reclutador) ────────────────────────── */
+    .parse-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: .8rem;
+    }
+    .parse-field {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .7rem .9rem;
+    }
+    .parse-field .label {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin-bottom: .25rem;
+    }
+    .parse-field .value { font-size: .92rem; font-weight: 600; word-break: break-word; }
+    .parse-field.missing { border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.06); }
+    .parse-field.missing .value { color: #fca5a5; font-style: italic; font-weight: 500; }
+
+    .parse-job {
+      border-left: 3px solid var(--accent);
+      padding: .3rem 0 .3rem .8rem;
+      margin-bottom: .9rem;
+    }
+    .parse-job .role { font-weight: 600; font-size: .92rem; }
+    .parse-job .org  { color: var(--accent2); font-size: .84rem; }
+    .parse-job .per  { color: var(--muted); font-size: .78rem; margin-top: .1rem; }
+    .plain-list { list-style: none; }
+    .plain-list li {
+      font-size: .86rem; padding: .35rem 0;
+      border-bottom: 1px solid var(--border); color: var(--text);
+    }
+    .plain-list li:last-child { border-bottom: none; }
+
+    /* ── Comparar vacantes ─────────────────────────────────────── */
+    .vac-input {
+      width: 100%;
+      min-height: 90px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: .7rem .9rem;
+      font-family: inherit;
+      font-size: .88rem;
+      resize: vertical;
+      margin-bottom: .6rem;
+    }
+    .vac-input:focus { outline: none; border-color: var(--accent); }
+    .chip-count {
+      font-size: .68rem; opacity: .7; margin-left: .3rem;
+    }
+    .chip-incv { box-shadow: 0 0 0 1.5px var(--green) inset; }
+
+    /* ── Bullets antes/después ─────────────────────────────────── */
+    .bullet-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      margin-bottom: .9rem;
+    }
+    .bullet-row { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .5rem; }
+    .bullet-row .tag {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      padding: .15rem .5rem; border-radius: 5px; flex-shrink: 0; margin-top: .1rem;
+    }
+    .bullet-row .tag.before { background: rgba(239,68,68,.15); color: #fca5a5; }
+    .bullet-row .tag.after  { background: rgba(34,197,94,.15); color: #86efac; }
+    .bullet-row .txt { font-size: .88rem; line-height: 1.5; }
+    .bullet-row.old .txt { color: var(--muted); text-decoration: line-through; }
+    .bullet-metric {
+      font-size: .76rem; color: var(--orange);
+      margin-top: .35rem; padding-left: 3.2rem;
+    }
+    .bullet-badges { margin-bottom: .5rem; display: flex; gap: .4rem; flex-wrap: wrap; }
+    .bullet-badge {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .03em; padding: .15rem .5rem; border-radius: 999px;
+    }
+    .bullet-badge.b-verbo   { background: rgba(108,99,255,.18); color: #c4b5fd; }
+    .bullet-badge.b-metrica { background: rgba(34,197,94,.15);  color: #86efac; }
+
+    /* ── Job title match ───────────────────────────────────────── */
+    .job-title-box {
+      margin: 1rem 0;
+      padding: .7rem .85rem;
+      border-radius: 8px;
+      font-size: .85rem;
+      line-height: 1.4;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .job-title-box .jt-label {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--muted); margin-bottom: .25rem;
+    }
+    .job-title-box .jt-value { font-weight: 700; }
+    .job-title-box.ok    { border-color: rgba(34,197,94,.4); }
+    .job-title-box.miss  { border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.06); }
+    .job-title-box .jt-status { margin-top: .3rem; font-size: .8rem; }
+    .job-title-box.ok   .jt-status { color: #86efac; }
+    .job-title-box.miss .jt-status { color: #fcd34d; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>⚡ CV Optimizer ATS</h1>
+    <p>Analiza tu CV contra una vacante y obtén recomendaciones para superar los filtros ATS</p>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabbtn-adaptar" onclick="cambiarTab('adaptar')">🎯 Adaptar a vacante</button>
+    <button class="tab-btn" id="tabbtn-ats" onclick="cambiarTab('ats')">📋 Análisis ATS</button>
+    <button class="tab-btn" id="tabbtn-parsing" onclick="cambiarTab('parsing')">👁️ Vista del reclutador</button>
+    <button class="tab-btn" id="tabbtn-comparar" onclick="cambiarTab('comparar')">🔀 Comparar vacantes</button>
+    <button class="tab-btn" id="tabbtn-bullets" onclick="cambiarTab('bullets')">✍️ Mejorar bullets</button>
+  </div>
+
+  <!-- ════════════ TAB: Adaptar a vacante ════════════ -->
+  <div id="tab-adaptar" class="tab-content active">
+
+  <!-- Inputs -->
+  <div class="input-grid">
+    <div class="card">
+      <label for="cv">📄 Tu CV</label>
+      <textarea id="cv" placeholder="Pega aquí el contenido de tu CV en texto plano...
+
+Ejemplo:
+Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabajé en Empresa XYZ construyendo APIs REST. Manejo Docker, Git y PostgreSQL..."></textarea>
+      <div class="upload-row">
+        <label class="btn-upload" for="archivo-cv">📎 Subir PDF o DOCX</label>
+        <input type="file" id="archivo-cv" accept=".pdf,.docx,.doc" style="display:none" onchange="subirArchivo(this)" />
+        <span class="upload-status" id="upload-status">o pega el texto arriba</span>
+      </div>
+    </div>
+    <div class="card">
+      <label for="vacante">🏢 Descripción de la vacante</label>
+      <textarea id="vacante" placeholder="Pega aquí la descripción completa del puesto (incluyendo beneficios, sobre la empresa, etc.). El botón 🧹 extrae solo lo importante."></textarea>
+      <div class="upload-row">
+        <button class="btn-upload" onclick="limpiarVacante()">🧹 Limpiar vacante</button>
+        <span class="upload-status" id="limpiar-status">elimina beneficios y ruido</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-wrap">
+    <button id="analizar" onclick="analizar()">Analizar CV</button>
+  </div>
+
+  <!-- Error -->
+  <div id="error-box"></div>
+
+  <!-- Resultados -->
+  <div id="resultados">
+
+    <div class="results-grid">
+
+      <!-- Columna izquierda: score + keywords -->
+      <div>
+        <div class="score-card">
+          <div class="score-label">Compatibilidad ATS</div>
+          <div class="score-circle-wrap">
+            <svg class="score-circle" viewBox="0 0 120 120">
+              <circle class="track" cx="60" cy="60" r="54" />
+              <circle class="fill" id="score-fill" cx="60" cy="60" r="54" />
+            </svg>
+            <div class="score-number" id="score-number">0</div>
+          </div>
+          <div class="score-desc" id="score-desc"></div>
+
+          <div id="job-title-box" class="job-title-box" style="display:none"></div>
+
+          <div class="kw-section">
+            <h4>✅ Keywords cubiertas</h4>
+            <div class="chips" id="chips-cubiertas"></div>
+          </div>
+
+          <div class="kw-section" style="margin-top:1rem">
+            <h4>⚠️ Keywords sugeridas</h4>
+            <div class="chips" id="chips-sugeridas"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: CV adaptado + notas -->
+      <div class="right-col">
+
+        <div class="card cv-section">
+          <div class="card-title">📝 CV Adaptado</div>
+          <div class="cv-resumen" id="cv-resumen"></div>
+          <div class="cv-subsection">
+            <h4>Experiencia relevante</h4>
+            <ul id="cv-experiencia"></ul>
+          </div>
+          <div class="cv-subsection">
+            <h4>Habilidades</h4>
+            <ul id="cv-habilidades"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">💡 Recomendaciones de mejora</div>
+          <div class="notas-list" id="notas-list"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Adaptar DOCX original -->
+    <div class="card cv-generado-card" style="margin-top:1.5rem">
+      <div class="cv-generado-header">
+        <h3>📄 Descargar CV Adaptado</h3>
+      </div>
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">
+        Sube tu CV en formato <strong style="color:var(--text)">DOCX</strong>.
+        Se adapta el resumen a la vacante y el resto queda <strong style="color:var(--text)">intacto</strong>.
+      </p>
+      <div class="upload-row">
+        <label class="btn-upload" for="docx-original" style="font-size:.85rem;padding:.5rem 1rem">
+          📎 Seleccionar CV (.docx)
+        </label>
+        <input type="file" id="docx-original" accept=".docx" style="display:none" onchange="mostrarNombreDocx(this)"/>
+        <span id="docx-nombre" class="upload-status">ningún archivo seleccionado</span>
+      </div>
+      <div style="margin-top:.85rem">
+        <button class="btn-action btn-generar" style="padding:.6rem 1.8rem" onclick="adaptarDocxOriginal()">
+          ✨ Adaptar y Descargar DOCX
+        </button>
+        <span id="adaptar-docx-status" class="upload-status" style="margin-left:.75rem"></span>
+      </div>
+    </div>
+
+  </div><!-- /resultados -->
+  </div><!-- /tab-adaptar -->
+
+  <!-- ════════════ TAB: Análisis ATS del CV ════════════ -->
+  <div id="tab-ats" class="tab-content">
+
+    <div class="card">
+      <div class="card-title">📋 Análisis de compatibilidad ATS</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
+        Sube tu CV y revisamos si pasará los filtros automáticos: <strong style="color:var(--text)">formato</strong>,
+        estructura, datos de contacto y calidad del contenido. <strong style="color:var(--text)">No necesitas vacante.</strong>
+        Para el análisis de formato completo (tablas, columnas, imágenes) usa <strong style="color:var(--text)">DOCX</strong>.
+      </p>
+
+      <label class="ats-dropzone" for="ats-file" id="ats-dropzone">
+        <span class="big-icon">📄</span>
+        <strong>Haz clic para subir tu CV</strong>
+        <span class="hint">PDF o DOCX · máx. 5 MB</span>
+        <input type="file" id="ats-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarATS(this)" />
+      </label>
+      <div id="ats-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
+    </div>
+
+    <!-- Resultado del análisis ATS -->
+    <div id="ats-resultado" style="display:none;margin-top:1.5rem">
+
+      <div class="card">
+        <div class="ats-summary">
+          <div class="score-circle-wrap">
+            <svg class="score-circle" viewBox="0 0 120 120">
+              <circle class="track" cx="60" cy="60" r="54" />
+              <circle class="fill" id="ats-score-fill" cx="60" cy="60" r="54" />
+            </svg>
+            <div class="score-number" id="ats-score-number">0</div>
+          </div>
+          <div class="ats-summary-text">
+            <h3 id="ats-nivel">—</h3>
+            <p id="ats-resumen"></p>
+            <div class="ats-badges" id="ats-badges"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.25rem">
+        <div id="ats-categorias"></div>
+      </div>
+
+    </div>
+
+  </div><!-- /tab-ats -->
+
+  <!-- ════════════ TAB: Vista del reclutador (Parsing ATS) ════════════ -->
+  <div id="tab-parsing" class="tab-content">
+
+    <div class="card">
+      <div class="card-title">👁️ Vista del reclutador — cómo el ATS lee tu CV</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
+        Reconstruimos los datos que un sistema ATS logra extraer de tu CV. Lo que aparezca
+        <strong style="color:var(--text)">en rojo</strong> es información que el ATS <strong style="color:var(--text)">no pudo detectar</strong>
+        y que el reclutador nunca verá.
+      </p>
+      <label class="ats-dropzone" for="parsing-file">
+        <span class="big-icon">🔍</span>
+        <strong>Haz clic para subir tu CV</strong>
+        <span class="hint">PDF o DOCX · máx. 5 MB</span>
+        <input type="file" id="parsing-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarParsing(this)" />
+      </label>
+      <div id="parsing-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
+    </div>
+
+    <div id="parsing-resultado" style="display:none;margin-top:1.5rem">
+      <div class="card">
+        <div class="ats-summary">
+          <div class="score-circle-wrap">
+            <svg class="score-circle" viewBox="0 0 120 120">
+              <circle class="track" cx="60" cy="60" r="54" />
+              <circle class="fill" id="parsing-score-fill" cx="60" cy="60" r="54" />
+            </svg>
+            <div class="score-number" id="parsing-score-number">0</div>
+          </div>
+          <div class="ats-summary-text">
+            <h3>Legibilidad ATS</h3>
+            <p id="parsing-resumen"></p>
+            <div class="ats-badges" id="parsing-badges"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.25rem">
+        <div class="section-title">📇 Datos extraídos</div>
+        <div class="parse-grid" id="parsing-campos"></div>
+      </div>
+
+      <div class="results-grid" style="margin-top:1.25rem">
+        <div class="card">
+          <div class="section-title">💼 Experiencia detectada</div>
+          <div id="parsing-puestos"></div>
+        </div>
+        <div class="card">
+          <div class="section-title">🎓 Educación detectada</div>
+          <ul id="parsing-educacion" class="plain-list"></ul>
+          <div class="section-title" style="margin-top:1rem">🛠️ Skills detectadas</div>
+          <div class="chips" id="parsing-skills"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-parsing -->
+
+  <!-- ════════════ TAB: Comparar vacantes ════════════ -->
+  <div id="tab-comparar" class="tab-content">
+
+    <div class="card">
+      <div class="card-title">🔀 Keywords del mercado — compara varias vacantes</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
+        Pega <strong style="color:var(--text)">2 a 5 vacantes del mismo tipo de puesto</strong> (una por bloque).
+        Extraemos las keywords que se repiten para decirte qué es <strong style="color:var(--text)">imprescindible</strong> en el mercado.
+        Opcional: pega tu CV para ver tu cobertura.
+      </p>
+      <div id="comparar-inputs">
+        <textarea class="vac-input" placeholder="Vacante 1: pega aquí la primera descripción..."></textarea>
+        <textarea class="vac-input" placeholder="Vacante 2: pega aquí la segunda descripción..."></textarea>
+      </div>
+      <button class="btn-upload" onclick="agregarVacante()" style="margin-top:.5rem">➕ Añadir otra vacante</button>
+
+      <label style="display:block;margin-top:1.25rem;font-weight:600;font-size:.9rem">📄 Tu CV (opcional)</label>
+      <textarea id="comparar-cv" class="vac-input" placeholder="Pega tu CV para ver qué keywords del mercado ya cubres..." style="margin-top:.4rem"></textarea>
+
+      <div style="margin-top:1rem">
+        <button class="btn-action btn-generar" onclick="compararVacantes()">🔍 Comparar vacantes</button>
+        <span id="comparar-status" class="upload-status" style="margin-left:.75rem"></span>
+      </div>
+    </div>
+
+    <div id="comparar-resultado" style="display:none;margin-top:1.5rem">
+      <div class="card">
+        <p id="comparar-resumen" style="font-size:.95rem;margin-bottom:1rem"></p>
+        <div class="kw-section">
+          <h4 style="color:#fca5a5">🔴 Imprescindibles (en casi todas)</h4>
+          <div class="chips" id="comparar-imp"></div>
+        </div>
+        <div class="kw-section" style="margin-top:1rem">
+          <h4 style="color:#fcd34d">🟡 Muy pedidas (en la mayoría)</h4>
+          <div class="chips" id="comparar-muy"></div>
+        </div>
+        <div class="kw-section" style="margin-top:1rem">
+          <h4 style="color:var(--muted)">⚪ Ocasionales</h4>
+          <div class="chips" id="comparar-oca"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-comparar -->
+
+  <!-- ════════════ TAB: Mejorar bullets ════════════ -->
+  <div id="tab-bullets" class="tab-content">
+
+    <div class="card">
+      <div class="card-title">✍️ Reescribir bullets débiles</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
+        Detectamos los logros que empiezan con verbos débiles ("Responsible for", "Worked on", "Helped"…)
+        y los reescribimos con <strong style="color:var(--text)">verbos de acción</strong>. Sube tu CV.
+      </p>
+      <label class="ats-dropzone" for="bullets-file">
+        <span class="big-icon">✏️</span>
+        <strong>Haz clic para subir tu CV</strong>
+        <span class="hint">PDF o DOCX · máx. 5 MB</span>
+        <input type="file" id="bullets-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarBullets(this)" />
+      </label>
+      <div id="bullets-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
+    </div>
+
+    <div id="bullets-resultado" style="display:none;margin-top:1.5rem">
+      <div class="card">
+        <p id="bullets-resumen" style="font-size:.95rem"></p>
+      </div>
+      <div id="bullets-lista"></div>
+    </div>
+
+  </div><!-- /tab-bullets -->
+
+</div><!-- /container -->
+
+<script>
+  const ICONS = ["💡","🎯","📌","🔑","📈","✏️"];
+
+  async function analizar() {
+    const cv      = document.getElementById("cv").value.trim();
+    const vacante = document.getElementById("vacante").value.trim();
+    const errBox  = document.getElementById("error-box");
+    const btn     = document.getElementById("analizar");
+
+    // Validar
+    errBox.style.display = "none";
+    if (!cv || !vacante) {
+      mostrarError("Por favor completa ambos campos antes de analizar.");
+      return;
+    }
+
+    // Estado cargando
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Analizando…';
+    document.getElementById("resultados").style.display = "none";
+
+    try {
+      const res = await fetch("/api/v1/adaptar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cv_texto: cv, vacante_texto: vacante }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Error ${res.status}`);
+      }
+
+      const data = await res.json();
+      renderResultados(data);
+
+    } catch (e) {
+      mostrarError(e.message || "Error desconocido. Revisa que el servidor esté corriendo.");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "Analizar CV";
+    }
+  }
+
+  function renderResultados(d) {
+    // ── Score circular ──────────────────────────────────────────
+    const score = d.score_match;
+    const circumference = 2 * Math.PI * 54; // 339.3
+    const offset = circumference - (score / 100) * circumference;
+
+    const fill = document.getElementById("score-fill");
+    fill.style.strokeDashoffset = offset;
+
+    // Color según score
+    const color = score >= 70 ? "#22c55e" : score >= 40 ? "#f59e0b" : "#ef4444";
+    fill.style.stroke = color;
+
+    const numEl = document.getElementById("score-number");
+    numEl.style.color = color;
+
+    // Animación del número
+    animarNumero(numEl, 0, score, 1000);
+
+    const desc = document.getElementById("score-desc");
+    if      (score >= 70) { desc.textContent = "Excelente compatibilidad 🚀"; desc.style.color = "#22c55e"; }
+    else if (score >= 40) { desc.textContent = "Compatibilidad media 📊";     desc.style.color = "#f59e0b"; }
+    else                  { desc.textContent = "Baja compatibilidad ⚠️";      desc.style.color = "#ef4444"; }
+
+    // ── Job title match ─────────────────────────────────────────
+    const jt = document.getElementById("job-title-box");
+    if (d.titulo_vacante) {
+      const ok = d.titulo_cubierto;
+      jt.className = "job-title-box " + (ok ? "ok" : "miss");
+      jt.style.display = "block";
+      jt.innerHTML =
+        `<div class="jt-label">🎯 Cargo objetivo de la vacante</div>` +
+        `<div class="jt-value">${escapeHtml(d.titulo_vacante)}</div>` +
+        `<div class="jt-status">${ok
+          ? "✓ Tu CV ya menciona este cargo"
+          : "⚠ No aparece en tu CV — al adaptar el DOCX lo añadiremos a tu titular"}</div>`;
+    } else {
+      jt.style.display = "none";
+    }
+
+    // ── Keywords ────────────────────────────────────────────────
+    renderChips("chips-cubiertas", d.keywords_cubiertas, "chip-green");
+    renderChips("chips-sugeridas", d.keywords_sugeridas, "chip-orange");
+
+    // ── CV adaptado ──────────────────────────────────────────────
+    document.getElementById("cv-resumen").textContent = d.cv_adaptado.resumen;
+
+    renderLista("cv-experiencia", d.cv_adaptado.experiencia);
+    renderLista("cv-habilidades", d.cv_adaptado.habilidades);
+
+    // ── Notas ────────────────────────────────────────────────────
+    const notasEl = document.getElementById("notas-list");
+    notasEl.innerHTML = "";
+    d.notas_para_usuario.forEach((nota, i) => {
+      const div = document.createElement("div");
+      div.className = "nota-item";
+      div.innerHTML = `<span class="nota-icon">${ICONS[i % ICONS.length]}</span><span>${nota}</span>`;
+      notasEl.appendChild(div);
+    });
+
+    // Mostrar sección
+    const sec = document.getElementById("resultados");
+    sec.style.display = "block";
+    sec.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderChips(containerId, items, className) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    if (!items || items.length === 0) {
+      el.innerHTML = '<span style="color:var(--muted);font-size:.8rem">Ninguna detectada</span>';
+      return;
+    }
+    items.forEach(kw => {
+      const span = document.createElement("span");
+      span.className = `chip ${className}`;
+      span.textContent = kw;
+      el.appendChild(span);
+    });
+  }
+
+  function renderLista(id, items) {
+    const ul = document.getElementById(id);
+    ul.innerHTML = "";
+    (items || []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      ul.appendChild(li);
+    });
+  }
+
+  function animarNumero(el, desde, hasta, duracion) {
+    const inicio = performance.now();
+    function tick(ahora) {
+      const t = Math.min((ahora - inicio) / duracion, 1);
+      const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      el.textContent = Math.round(desde + (hasta - desde) * ease);
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  async function limpiarVacante() {
+    const textarea = document.getElementById("vacante");
+    const status   = document.getElementById("limpiar-status");
+    const texto    = textarea.value.trim();
+
+    if (!texto) {
+      status.className = "upload-status err";
+      status.textContent = "❌ Pega primero la descripción de la vacante";
+      return;
+    }
+
+    status.className = "upload-status";
+    status.textContent = "⏳ Limpiando…";
+
+    try {
+      const res = await fetch("/api/v1/limpiar-vacante", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+
+      const original = texto.split(/\s+/).length;
+      const limpio   = data.texto.split(/\s+/).length;
+      const reduccion = Math.round((1 - limpio / original) * 100);
+
+      textarea.value = data.texto;
+      status.className = "upload-status ok";
+      status.textContent = reduccion > 0
+        ? `✅ Listo — se eliminó el ${reduccion}% de ruido`
+        : "✅ Texto ya estaba limpio";
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "Error al limpiar");
+    }
+  }
+
+  async function subirArchivo(input) {
+    const archivo = input.files[0];
+    if (!archivo) return;
+
+    const status = document.getElementById("upload-status");
+    status.className = "upload-status";
+    status.textContent = "⏳ Leyendo archivo…";
+
+    const form = new FormData();
+    form.append("archivo", archivo);
+
+    try {
+      const res = await fetch("/api/v1/extraer-cv", { method: "POST", body: form });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+
+      document.getElementById("cv").value = data.texto;
+      status.className = "upload-status ok";
+      status.textContent = `✅ ${data.nombre} cargado`;
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "No se pudo leer el archivo");
+    }
+
+    // Limpiar el input para permitir subir el mismo archivo de nuevo
+    input.value = "";
+  }
+
+  function mostrarNombreDocx(input) {
+    const nombre = input.files[0] ? input.files[0].name : "ningún archivo seleccionado";
+    document.getElementById("docx-nombre").textContent = nombre;
+    document.getElementById("docx-nombre").className = input.files[0] ? "upload-status ok" : "upload-status";
+  }
+
+  async function adaptarDocxOriginal() {
+    const input   = document.getElementById("docx-original");
+    const vacante = document.getElementById("vacante").value.trim();
+    const status  = document.getElementById("adaptar-docx-status");
+
+    if (!input.files[0]) {
+      status.className = "upload-status err";
+      status.textContent = "Selecciona tu CV en DOCX primero";
+      return;
+    }
+    if (!vacante) {
+      status.className = "upload-status err";
+      status.textContent = "Pega la vacante arriba primero";
+      return;
+    }
+
+    status.className = "upload-status";
+    status.textContent = "⏳ Adaptando...";
+
+    const form = new FormData();
+    form.append("archivo", input.files[0]);
+    form.append("vacante_texto", vacante);
+
+    try {
+      const res = await fetch("/api/v1/adaptar-docx-original", { method: "POST", body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Error ${res.status}`);
+      }
+      const data = await res.json();
+
+      // 1. Descargar el DOCX adaptado
+      const bytes  = Uint8Array.from(atob(data.archivo_base64), c => c.charCodeAt(0));
+      const blob   = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      const url    = URL.createObjectURL(blob);
+      const a      = document.createElement("a");
+      a.href       = url;
+      a.download   = data.nombre;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // 2. Actualizar el textarea del CV con el texto adaptado
+      document.getElementById("cv").value = data.texto;
+
+      status.className = "upload-status ok";
+      status.textContent = "✅ Descargado — re-analizando...";
+
+      // 3. Re-analizar automáticamente con el CV adaptado
+      await analizar();
+
+      status.textContent = "✅ Listo";
+
+    } catch(e) {
+      status.className = "upload-status err";
+      status.textContent = "Error: " + e.message;
+    }
+  }
+
+  async function generarCVAdaptado() {
+    const cv      = document.getElementById("cv").value.trim();
+    const vacante = document.getElementById("vacante").value.trim();
+    const status  = document.getElementById("generar-status");
+    const section = document.getElementById("cv-generado-section");
+
+    if (!cv || !vacante) {
+      mostrarError("Completa el CV y la vacante antes de generar.");
+      return;
+    }
+
+    status.textContent = "⏳ Generando CV adaptado…";
+    section.style.display = "block";
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    try {
+      const res = await fetch("/api/v1/generar-cv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cv_texto: cv, vacante_texto: vacante }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+
+      document.getElementById("cv-generado-texto").value = data.texto_completo;
+
+      // Mostrar keywords incorporadas
+      const kwWrap = document.getElementById("kw-incorporadas-wrap");
+      if (data.keywords_incorporadas && data.keywords_incorporadas.length > 0) {
+        kwWrap.style.display = "flex";
+        // Limpiar chips previos (conservar el label)
+        const chips = kwWrap.querySelectorAll(".chip");
+        chips.forEach(c => c.remove());
+        data.keywords_incorporadas.forEach(kw => {
+          const span = document.createElement("span");
+          span.className = "chip chip-purple";
+          span.textContent = kw;
+          kwWrap.appendChild(span);
+        });
+      }
+
+      status.textContent = `✅ CV adaptado para: "${data.titulo_puesto}"`;
+      status.style.color = "#86efac";
+
+    } catch (e) {
+      status.textContent = "❌ " + (e.message || "Error al generar el CV");
+      status.style.color = "#fca5a5";
+    }
+  }
+
+  function copiarCV() {
+    const texto = document.getElementById("cv-generado-texto").value;
+    if (!texto) return;
+    navigator.clipboard.writeText(texto).then(() => {
+      const status = document.getElementById("generar-status");
+      const prev = status.textContent;
+      status.textContent = "📋 ¡Copiado al portapapeles!";
+      status.style.color = "#86efac";
+      setTimeout(() => { status.textContent = prev; }, 2000);
+    });
+  }
+
+  async function descargarCV(formato) {
+    const cv      = document.getElementById("cv").value.trim();
+    const vacante = document.getElementById("vacante").value.trim();
+    const status  = document.getElementById("generar-status");
+
+    if (!cv || !vacante) {
+      mostrarError("Completa el CV y la vacante antes de descargar.");
+      return;
+    }
+
+    const prevStatus = status.textContent;
+    status.textContent = `⏳ Generando ${formato.toUpperCase()}…`;
+    status.style.color = "";
+
+    try {
+      const res = await fetch(`/api/v1/exportar-cv?formato=${formato}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cv_texto: cv, vacante_texto: vacante }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Error ${res.status}`);
+      }
+
+      const blob     = await res.blob();
+      const url      = URL.createObjectURL(blob);
+      const nombre   = cv.split("\n")[0].trim().replace(/\s+/g, "_") || "CV_Adaptado";
+      const a        = document.createElement("a");
+      a.href         = url;
+      a.download     = `${nombre}_Adaptado.${formato}`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      status.textContent = `✅ ${formato.toUpperCase()} descargado`;
+      status.style.color = "#86efac";
+      setTimeout(() => { status.textContent = prevStatus; status.style.color = ""; }, 3000);
+
+    } catch (e) {
+      status.textContent = "❌ " + (e.message || "Error al generar el archivo");
+      status.style.color = "#fca5a5";
+    }
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────
+  function cambiarTab(tab) {
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+    document.getElementById("tab-" + tab).classList.add("active");
+    document.getElementById("tabbtn-" + tab).classList.add("active");
+  }
+
+  // ── Análisis ATS standalone (sin vacante) ─────────────────────
+  async function analizarATS(input) {
+    const archivo = input.files[0];
+    if (!archivo) return;
+    const status    = document.getElementById("ats-file-status");
+    const resultado = document.getElementById("ats-resultado");
+
+    status.className = "upload-status";
+    status.textContent = "⏳ Analizando " + archivo.name + "…";
+
+    const form = new FormData();
+    form.append("archivo", archivo);
+
+    try {
+      const res  = await fetch("/api/v1/analizar-ats", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+
+      status.className = "upload-status ok";
+      status.textContent = "✅ " + archivo.name + " analizado";
+      renderATS(data);
+      resultado.style.display = "block";
+      resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "No se pudo analizar el CV");
+    }
+    input.value = "";
+  }
+
+  function renderATS(d) {
+    // Círculo de score
+    const score = d.score;
+    const circumference = 2 * Math.PI * 54;
+    const fill = document.getElementById("ats-score-fill");
+    fill.style.strokeDashoffset = circumference - (score / 100) * circumference;
+    const color = score >= 70 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#ef4444";
+    fill.style.stroke = color;
+    const numEl = document.getElementById("ats-score-number");
+    numEl.style.color = color;
+    animarNumero(numEl, 0, score, 1000);
+
+    // Nivel + resumen
+    const nivelEl = document.getElementById("ats-nivel");
+    nivelEl.textContent = d.nivel;
+    nivelEl.style.color = color;
+    document.getElementById("ats-resumen").textContent = d.resumen;
+
+    // Badges
+    const badges = document.getElementById("ats-badges");
+    badges.innerHTML = "";
+    if (d.n_errores > 0)
+      badges.innerHTML += `<span class="ats-badge err">${d.n_errores} crítico(s)</span>`;
+    if (d.n_advertencias > 0)
+      badges.innerHTML += `<span class="ats-badge warn">${d.n_advertencias} mejora(s)</span>`;
+    if (d.n_errores === 0 && d.n_advertencias === 0)
+      badges.innerHTML += `<span class="ats-badge ok">Sin problemas 🎉</span>`;
+
+    // Categorías
+    const cont = document.getElementById("ats-categorias");
+    cont.innerHTML = "";
+    const ICO = { ok: "✅", warning: "⚠️", error: "❌" };
+    d.categorias.forEach(cat => {
+      const tienePts = cat.max_puntos > 0;
+      const pct = tienePts ? Math.round(cat.puntos / cat.max_puntos * 100) : 0;
+      const barColor = pct >= 80 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
+
+      let checksHtml = "";
+      cat.checks.forEach(ch => {
+        checksHtml += `
+          <div class="ats-check ${ch.estado}">
+            <span class="ico">${ICO[ch.estado] || "•"}</span>
+            <div class="body">
+              <div class="t">${escapeHtml(ch.titulo)}</div>
+              <div class="d">${escapeHtml(ch.detalle)}</div>
+            </div>
+          </div>`;
+      });
+
+      cont.innerHTML += `
+        <div class="ats-cat">
+          <div class="ats-cat-header">
+            <span class="name">${cat.icono} ${escapeHtml(cat.nombre)}</span>
+            <span class="pts">${tienePts ? cat.puntos + "/" + cat.max_puntos : "N/A"}</span>
+          </div>
+          ${tienePts ? `<div class="ats-cat-bar"><span style="width:${pct}%;background:${barColor}"></span></div>` : ""}
+          ${checksHtml}
+        </div>`;
+    });
+  }
+
+  function escapeHtml(s) {
+    return (s || "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  // ════════════ Vista del reclutador (Parsing ATS) ════════════
+  async function analizarParsing(input) {
+    const archivo = input.files[0];
+    if (!archivo) return;
+    const status    = document.getElementById("parsing-file-status");
+    const resultado = document.getElementById("parsing-resultado");
+    status.className = "upload-status";
+    status.textContent = "⏳ Analizando " + archivo.name + "…";
+
+    const form = new FormData();
+    form.append("archivo", archivo);
+    try {
+      const res  = await fetch("/api/v1/parsing-ats", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      status.className = "upload-status ok";
+      status.textContent = "✅ " + archivo.name + " analizado";
+      renderParsing(data);
+      resultado.style.display = "block";
+      resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "No se pudo analizar el CV");
+    }
+    input.value = "";
+  }
+
+  function renderParsing(d) {
+    const score = d.score;
+    const circ = 2 * Math.PI * 54;
+    const fill = document.getElementById("parsing-score-fill");
+    fill.style.strokeDashoffset = circ - (score / 100) * circ;
+    const color = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
+    fill.style.stroke = color;
+    const numEl = document.getElementById("parsing-score-number");
+    numEl.style.color = color;
+    animarNumero(numEl, 0, score, 1000);
+    document.getElementById("parsing-resumen").textContent = d.resumen;
+
+    const badges = document.getElementById("parsing-badges");
+    badges.innerHTML = d.no_detectados.length
+      ? `<span class="ats-badge err">${d.no_detectados.length} campo(s) no detectado(s)</span>`
+      : `<span class="ats-badge ok">Datos completos 🎉</span>`;
+
+    // Campos
+    const etiquetas = {
+      nombre: "Nombre", email: "Email", telefono: "Teléfono",
+      linkedin: "LinkedIn", ubicacion: "Ubicación", experiencia: "Años de experiencia"
+    };
+    const cont = document.getElementById("parsing-campos");
+    cont.innerHTML = "";
+    Object.keys(etiquetas).forEach(k => {
+      const val = d.campos[k];
+      cont.innerHTML += `
+        <div class="parse-field ${val ? "" : "missing"}">
+          <div class="label">${etiquetas[k]}</div>
+          <div class="value">${val ? escapeHtml(val) : "✗ No detectado"}</div>
+        </div>`;
+    });
+
+    // Puestos
+    const pc = document.getElementById("parsing-puestos");
+    pc.innerHTML = d.puestos.length
+      ? d.puestos.map(p => `
+          <div class="parse-job">
+            <div class="role">${escapeHtml(p.titulo)}</div>
+            ${p.empresa ? `<div class="org">${escapeHtml(p.empresa)}</div>` : ""}
+            <div class="per">${escapeHtml(p.periodo)}</div>
+          </div>`).join("")
+      : `<p style="color:#fca5a5;font-size:.85rem">✗ El ATS no detectó experiencia laboral con fechas claras.</p>`;
+
+    // Educación
+    const ec = document.getElementById("parsing-educacion");
+    ec.innerHTML = d.educacion.length
+      ? d.educacion.map(e => `<li>${escapeHtml(e)}</li>`).join("")
+      : `<li style="color:#fca5a5">✗ No detectada</li>`;
+
+    // Skills
+    const sc = document.getElementById("parsing-skills");
+    sc.innerHTML = d.skills.length
+      ? d.skills.map(s => `<span class="chip chip-purple">${escapeHtml(s)}</span>`).join("")
+      : `<span style="color:#fca5a5;font-size:.85rem">✗ No detectadas</span>`;
+  }
+
+  // ════════════ Comparar vacantes ════════════
+  function agregarVacante() {
+    const cont = document.getElementById("comparar-inputs");
+    if (cont.querySelectorAll(".vac-input").length >= 5) return;
+    const ta = document.createElement("textarea");
+    ta.className = "vac-input";
+    ta.placeholder = "Vacante " + (cont.querySelectorAll(".vac-input").length + 1) + ": pega aquí la descripción...";
+    cont.appendChild(ta);
+  }
+
+  async function compararVacantes() {
+    const inputs = document.querySelectorAll("#comparar-inputs .vac-input");
+    const vacantes = Array.from(inputs).map(t => t.value.trim()).filter(Boolean);
+    const cv = document.getElementById("comparar-cv").value.trim();
+    const status = document.getElementById("comparar-status");
+
+    if (vacantes.length < 2) {
+      status.className = "upload-status err";
+      status.textContent = "Pega al menos 2 vacantes";
+      return;
+    }
+    status.className = "upload-status";
+    status.textContent = "⏳ Comparando…";
+
+    try {
+      const res = await fetch("/api/v1/comparar-vacantes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vacantes, cv_texto: cv })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      status.className = "upload-status ok";
+      status.textContent = `✅ ${data.total_vacantes} vacantes analizadas`;
+      renderComparar(data);
+      document.getElementById("comparar-resultado").style.display = "block";
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "Error al comparar");
+    }
+  }
+
+  function renderComparar(d) {
+    document.getElementById("comparar-resumen").textContent = d.resumen;
+    const grupos = {
+      imprescindible: { el: "comparar-imp", bg: "rgba(239,68,68,.15)",  col: "#fca5a5" },
+      muy_pedida:     { el: "comparar-muy", bg: "rgba(245,158,11,.12)", col: "#fcd34d" },
+      ocasional:      { el: "comparar-oca", bg: "var(--bg)",            col: "var(--muted)" },
+    };
+    Object.values(grupos).forEach(g => document.getElementById(g.el).innerHTML = "");
+    d.keywords.forEach(k => {
+      const g = grupos[k.categoria];
+      if (!g) return;
+      const incv = k.en_cv ? " chip-incv" : "";
+      const check = k.en_cv ? " ✓" : "";
+      document.getElementById(g.el).innerHTML +=
+        `<span class="chip${incv}" style="background:${g.bg};color:${g.col}">` +
+        `${escapeHtml(k.keyword)}${check}<span class="chip-count">${k.frecuencia}/${k.total}</span></span>`;
+    });
+    Object.values(grupos).forEach(g => {
+      const el = document.getElementById(g.el);
+      if (!el.innerHTML) el.innerHTML = `<span style="color:var(--muted);font-size:.82rem">—</span>`;
+    });
+  }
+
+  // ════════════ Mejorar bullets ════════════
+  async function analizarBullets(input) {
+    const archivo = input.files[0];
+    if (!archivo) return;
+    const status    = document.getElementById("bullets-file-status");
+    const resultado = document.getElementById("bullets-resultado");
+    status.className = "upload-status";
+    status.textContent = "⏳ Analizando " + archivo.name + "…";
+
+    const form = new FormData();
+    form.append("archivo", archivo);
+    try {
+      const res  = await fetch("/api/v1/mejorar-bullets", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      status.className = "upload-status ok";
+      status.textContent = "✅ " + archivo.name + " analizado";
+      renderBullets(data);
+      resultado.style.display = "block";
+      resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "No se pudo analizar el CV");
+    }
+    input.value = "";
+  }
+
+  function renderBullets(d) {
+    document.getElementById("bullets-resumen").textContent = d.resumen;
+    const cont = document.getElementById("bullets-lista");
+    cont.innerHTML = "";
+    if (!d.mejoras || !d.mejoras.length) {
+      cont.innerHTML = `<div style="color:var(--muted);font-size:.85rem">No hay bullets que mejorar — ¡tus logros ya usan verbos de acción y métricas!</div>`;
+      return;
+    }
+    d.mejoras.forEach(m => {
+      const badges = (m.tipos || []).map(t =>
+        t === "verbo"
+          ? `<span class="bullet-badge b-verbo">Verbo de acción</span>`
+          : `<span class="bullet-badge b-metrica">Métrica añadida</span>`
+      ).join(" ");
+      const nota = m.metrica_agregada
+        ? `<div class="bullet-metric">⚠ Ajusta el número marcado con « ~ » a tu cifra real.</div>`
+        : "";
+      cont.innerHTML += `
+        <div class="bullet-card">
+          <div class="bullet-badges">${badges}</div>
+          <div class="bullet-row old">
+            <span class="tag before">Antes</span>
+            <span class="txt">${escapeHtml(m.original)}</span>
+          </div>
+          <div class="bullet-row">
+            <span class="tag after">Después</span>
+            <span class="txt">${escapeHtml(m.mejorado)}</span>
+          </div>
+          ${nota}
+        </div>`;
+    });
+  }
+
+  function mostrarError(msg) {
+    const el = document.getElementById("error-box");
+    el.textContent = "❌ " + msg;
+    el.style.display = "block";
+  }
+
+  // Enter en textarea → no hace submit, solo salto de línea (comportamiento normal)
+</script>
+</body>
+</html>

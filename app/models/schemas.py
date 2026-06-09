@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional  # Pydantic v1 compatible
 
 
 # --- Request ---
@@ -25,3 +25,5 @@ class AdaptarCVResponse(BaseModel):
     keywords_cubiertas: List[str]
     keywords_sugeridas: List[str]
     notas_para_usuario: List[str]
+    titulo_vacante: Optional[str] = None
+    titulo_cubierto: bool = True

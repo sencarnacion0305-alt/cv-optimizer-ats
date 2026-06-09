@@ -1,0 +1,22 @@
+# Entornos virtuales y cache
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Control de versiones y editores
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Documentacion y archivos de despliegue (no necesarios en la imagen)
+*.md
+render.yaml
+
+# Archivos personales / temporales
+*.docx
+*.pdf
+.env
+.DS_Store
