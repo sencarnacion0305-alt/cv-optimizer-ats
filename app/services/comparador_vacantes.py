@@ -11,7 +11,7 @@ Si se aporta el texto del CV, marca cuales ya cubre el candidato.
 
 from typing import Dict, List, Optional
 
-from app.services.adaptador import _keywords_de, _normalizar
+from app.services.adaptador import _keywords_de, _normalizar, _kw_presente
 
 
 def _clasificar(frecuencia: int, total: int) -> str:
@@ -59,7 +59,7 @@ def comparar_vacantes(vacantes: List[str], cv_texto: str = "") -> Dict:
             "frecuencia": freq,
             "total": total,
             "categoria": categoria,
-            "en_cv": bool(cv_n) and kw in cv_n,
+            "en_cv": bool(cv_n) and _kw_presente(cv_n, kw),
         })
 
     # Ordenar: por frecuencia desc, luego por orden de aparicion

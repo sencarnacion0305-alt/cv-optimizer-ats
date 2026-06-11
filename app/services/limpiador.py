@@ -50,6 +50,24 @@ TITULOS_RUIDO = re.compile(
     re.IGNORECASE,
 )
 
+# Líneas de interfaz de portales de empleo (LinkedIn, Indeed, InfoJobs...)
+# que se cuelan al copiar y pegar la página completa.
+LINEA_UI_PORTAL = re.compile(
+    r"^\s*[•·\-|]*\s*(save|saved|easy apply|apply now|applied|apply|promoted|"
+    r"reposted|premium|message|show more|show less|see more|see less|"
+    r"follow|following|connect|share|report this job|"
+    r"tailor my resume|am i a good fit|how should i prepare|"
+    r"meet the hiring team|about the job|about us|people you can reach|"
+    r"actively reviewing applicants|x{0,3}\d*\s*applicants?|"
+    r"solicitud sencilla|solicitar ahora|solicitar|inscr[ií]bete|guardar|"
+    r"guardado|compartir|denunciar( este)?( empleo)?|promocionado|"
+    r"publicado de nuevo|sobre el empleo|acerca del empleo|"
+    r"conoce al equipo( de contrataci[oó]n)?|ver m[aá]s|ver menos|mensaje|"
+    r"\d+\s*(solicitudes|candidatos)|hace\s+\d+\s*(d[ií]as?|horas?|semanas?))"
+    r"\s*[•·\-|]*\s*$",
+    re.IGNORECASE,
+)
+
 # Líneas de ruido independientemente de la sección (frases legales, etc.)
 LINEAS_RUIDO = re.compile(
     r"(equal opportunity|employer|somos un empleador|"
@@ -115,7 +133,8 @@ def limpiar_vacante(texto: str) -> str:
     Recibe la descripción completa de una vacante y devuelve solo
     la información relevante para el análisis ATS.
     """
-    lineas = texto.splitlines()
+    # Pre-filtro: quitar lineas de interfaz de portales (botones, contadores)
+    lineas = [l for l in texto.splitlines() if not LINEA_UI_PORTAL.match(l)]
     bloques: List[Tuple[str, List[str]]] = []  # (clasificacion, lineas)
 
     seccion_actual: str = "neutro"

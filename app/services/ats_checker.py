@@ -122,6 +122,9 @@ ACRONIMOS_LARGOS = {
     "osint": "Open-Source Intelligence",
     "ueba": "User and Entity Behavior Analytics",
     "grc": "Governance, Risk and Compliance",
+    "rgpd": "Reglamento General de Protección de Datos",
+    "ens": "Esquema Nacional de Seguridad",
+    "lopd": "Ley Orgánica de Protección de Datos",
 }
 
 GENERICOS_ARCHIVO = {

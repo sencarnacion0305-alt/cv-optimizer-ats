@@ -10,7 +10,7 @@ import re
 from typing import List, Optional
 
 from app.services.adaptador import (
-    _keywords_de, _analizar_cobertura, _normalizar,
+    _keywords_de, _analizar_cobertura, _normalizar, _kw_presente,
     _detectar_titulo_vacante, _titulo_en_cv, _PALABRAS_TITULO,
 )
 from app.services.ats_checker import (
@@ -53,6 +53,7 @@ _ACRONIMOS = {
     "nist", "mitre", "owasp", "ldap", "ssh", "ftp", "smtp", "http", "https",
     "tcp", "udp", "jwt", "ueba", "mfa", "sso", "ics", "csirt", "ioc", "ttp",
     "iso", "ai", "ml", "cis", "ngfw", "dast", "sast",
+    "rgpd", "ens", "lopd", "nis2", "dora", "enisa",
 }
 
 _CASING_ESPECIAL = {
@@ -62,19 +63,27 @@ _CASING_ESPECIAL = {
     "mongodb": "MongoDB", "mysql": "MySQL", "github": "GitHub", "gitlab": "GitLab",
     "devops": "DevOps", "devsecops": "DevSecOps", "mlops": "MLOps", "powerbi": "PowerBI",
     "fastapi": "FastAPI", "nestjs": "NestJS", "opensearch": "OpenSearch",
+    "qradar": "QRadar",
 }
+
+
+# Conectores que van en minuscula dentro de una frase (espanol e ingles)
+_CONECTORES = {"de", "del", "a", "la", "el", "los", "las", "y", "en", "para",
+               "con", "of", "and", "the", "to", "in", "for"}
 
 
 def _formato_keyword(kw: str) -> str:
     """Devuelve la keyword con mayusculas profesionales (EDR, OSCP, Splunk, LogScale)."""
     palabras = kw.split()
     out = []
-    for w in palabras:
+    for i, w in enumerate(palabras):
         wl = w.lower()
         if wl in _CASING_ESPECIAL:
             out.append(_CASING_ESPECIAL[wl])
         elif wl in _ACRONIMOS:
             out.append(wl.upper())
+        elif i > 0 and wl in _CONECTORES:
+            out.append(wl)
         else:
             out.append(w.capitalize())
     return " ".join(out)
@@ -180,7 +189,7 @@ def _construir_resumen_completo(
 
     # Priorizar las keywords que faltan (sugeridas) antes que las ya cubiertas
     todas_kw   = sugeridas + cubiertas
-    faltantes  = [kw for kw in todas_kw if kw not in texto_n]
+    faltantes  = [kw for kw in todas_kw if not _kw_presente(texto_n, kw)]
 
     if not faltantes:
         return base
@@ -252,16 +261,24 @@ def _limpiar_caracteres_ats(t: str) -> str:
     return t
 
 
+def _nodos_texto_run(run):
+    """Nodos w:t del run. Editarlos directamente preserva tabs y saltos
+    (asignar run.text destruye los elementos <w:tab/> del run)."""
+    from docx.oxml.ns import qn
+    return run._r.findall(qn("w:t"))
+
+
 def _normalizar_caracteres_doc(doc) -> int:
     """Reemplaza comillas/guiones tipograficos, simbolos decorativos y emojis."""
     cambios = 0
     for p in _todos_los_parrafos_docx(doc):
         for r in p.runs:
-            if r.text:
-                nuevo = _limpiar_caracteres_ats(r.text)
-                if nuevo != r.text:
-                    r.text = nuevo
-                    cambios += 1
+            for nodo in _nodos_texto_run(r):
+                if nodo.text:
+                    nuevo = _limpiar_caracteres_ats(nodo.text)
+                    if nuevo != nodo.text:
+                        nodo.text = nuevo
+                        cambios += 1
     return cambios
 
 
@@ -279,18 +296,21 @@ def _expandir_acronimos_doc(doc, texto_completo: str) -> int:
     cambios = 0
     for p in _todos_los_parrafos_docx(doc):
         for r in p.runs:
-            if not r.text:
-                continue
-            for acr, largo in list(pendientes.items()):
-                if acr in ya:
+            for nodo in _nodos_texto_run(r):
+                if not nodo.text:
                     continue
-                patron = re.compile(rf"\b{re.escape(acr)}\b", re.IGNORECASE)
-                m = patron.search(r.text)
-                if m:
-                    orig = m.group(0)
-                    r.text = r.text[:m.start()] + f"{largo} ({orig.upper()})" + r.text[m.end():]
-                    ya.add(acr)
-                    cambios += 1
+                for acr, largo in list(pendientes.items()):
+                    if acr in ya:
+                        continue
+                    patron = re.compile(rf"\b{re.escape(acr)}\b", re.IGNORECASE)
+                    m = patron.search(nodo.text)
+                    if m:
+                        orig = m.group(0)
+                        nodo.text = (nodo.text[:m.start()]
+                                     + f"{largo} ({orig.upper()})"
+                                     + nodo.text[m.end():])
+                        ya.add(acr)
+                        cambios += 1
     return cambios
 
 
@@ -455,7 +475,8 @@ def adaptar_cv_docx(docx_bytes: bytes, vacante_texto: str) -> bytes:
     todos_actualizado = _todos_los_parrafos_docx(doc)
     texto_cv_actual   = "\n".join(p.text for p in todos_actualizado if p.text.strip())
     texto_n_actual    = _normalizar(texto_cv_actual)
-    kw_faltantes      = [kw for kw in (cubiertas + sugeridas) if kw not in texto_n_actual]
+    kw_faltantes      = [kw for kw in (cubiertas + sugeridas)
+                         if not _kw_presente(texto_n_actual, kw)]
 
     if kw_faltantes:
         en_habilidades        = False

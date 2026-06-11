@@ -138,6 +138,16 @@ COMPOUND_TERMS = [
     "certified information systems security", "cissp",
     "certified information security manager", "cism",
     "offensive security", "oscp", "giac",
+    # Seguridad en español (con y sin acentos — el texto pegado varía)
+    "respuesta a incidentes", "gestion de vulnerabilidades",
+    "gestión de vulnerabilidades", "inteligencia de amenazas",
+    "hacking etico", "hacking ético", "seguridad informatica",
+    "seguridad informática", "seguridad de la informacion",
+    "seguridad de la información", "analisis forense", "análisis forense",
+    "esquema nacional de seguridad", "centro de operaciones de seguridad",
+    "pruebas de penetracion", "pruebas de penetración",
+    "concienciacion de seguridad", "concienciación de seguridad",
+    "iso 27001", "iso 22301", "iso 27017",
 ]
 
 # Términos técnicos de una sola palabra que SÍ deben considerarse habilidades
@@ -160,6 +170,8 @@ TECH_SINGLE = {
     "palo alto", "fortinet", "checkpoint", "cisco", "firewall",
     "mitre", "att&ck", "owasp", "iso27001", "nist", "pci", "hipaa",
     "gdpr", "sox", "cis",
+    # Seguridad — normativa y términos en español
+    "ciberseguridad", "rgpd", "lopd", "ens", "nis2", "dora", "enisa",
     # Frameworks / librerías
     "react", "angular", "vue", "fastapi", "django", "flask", "spring",
     "express", "nestjs", "laravel", "rails",
@@ -205,11 +217,144 @@ _NO_PROPIOS: Set[str] = {
 
 
 # ---------------------------------------------------------------------------
+# Ruido que NUNCA es una habilidad — bloquea falsos positivos de la detección
+# de nombres propios/siglas: botones de portales de empleo, ubicaciones,
+# nombres de personas y jerga de reclutamiento (ES + EN).
+# ---------------------------------------------------------------------------
+
+RUIDO_PORTAL_EMPLEO: Set[str] = {
+    # Interfaz de LinkedIn / Indeed / InfoJobs (inglés)
+    "save", "saved", "easy", "apply", "applied", "applicants", "applicant",
+    "show", "more", "less", "premium", "promoted", "sponsored", "featured",
+    "tailor", "meet", "message", "messages", "connect", "connections",
+    "follow", "followers", "following", "share", "report", "repost",
+    "reposted", "posted", "hiring", "recruiter", "recruiters", "sign",
+    "signin", "login", "notified", "notifications", "click", "view", "views",
+    "profile", "insights", "actively", "reviewing", "learn", "jobs", "job",
+    "alumni", "employees", "interview", "interviews", "resume", "resumes",
+    "get", "see", "people", "company", "companies", "industry",
+    # Interfaz en español
+    "solicitar", "solicitud", "sencilla", "inscribete", "inscríbete",
+    "inscripcion", "inscripción", "inscrito", "guardar", "guardado",
+    "compartir", "denunciar", "empleo", "empleos", "anuncio", "anuncios",
+    "candidatura", "candidaturas", "candidato", "candidatos", "postular",
+    "postulate", "postúlate", "seguir", "seguidores", "conectar", "mensaje",
+    "mensajes", "promocionado", "destacado", "patrocinado", "solicitantes",
+    "activamente", "revisando", "ver", "vista", "perfil", "publicado",
+    "republicado", "entrevista", "entrevistas", "contratacion", "contratación",
+}
+
+RUIDO_RECLUTAMIENTO: Set[str] = {
+    # Marketing / RRHH en español
+    "somos", "compromiso", "comprometida", "comprometido", "comprometidos",
+    "talento", "seleccion", "selección", "igualdad", "diversidad",
+    "inclusion", "inclusión", "oportunidades", "beneficios", "salario",
+    "retribucion", "retribución", "vacaciones", "teletrabajo", "hibrido",
+    "híbrido", "hibrida", "híbrida", "remoto", "remota", "jornada",
+    "contrato", "indefinido", "flexible", "flexibilidad", "cultura",
+    "valores", "mision", "misión", "vision", "visión", "crecimiento",
+    "desarrollo", "formacion", "formación", "carrera", "unete", "únete",
+    "cliente", "clientes", "cuenta", "cuentas", "tecnologia", "tecnología",
+    "tecnologias", "tecnologías", "informacion", "información", "gerente",
+    "lider", "líder", "lideres", "líderes", "personas", "gente", "ambiente",
+    "entorno", "sector", "sectores", "ibex35", "ibex", "multinacional",
+    "consultora", "consultor", "consultores", "analista", "analistas",
+    "ingeniero", "ingeniera", "tecnico", "técnico", "especialista",
+    "responsable", "coordinador", "coordinadora", "tech", "conoce",
+    "consultoria", "consultoría",
+    # Marketing / RRHH en inglés
+    "benefits", "salary", "compensation", "perks", "culture", "mission",
+    "vision", "values", "growth", "insurance", "vacation", "holidays",
+    "equity", "bonus", "diversity", "inclusion", "equal", "employer",
+    "sponsorship", "visa", "onboarding", "welcome", "package", "remote",
+    "hybrid", "onsite", "office", "offices", "consulting", "acquisition",
+    "talent", "group", "solutions", "services", "partners", "global",
+}
+
+APELLIDOS_COMUNES: Set[str] = {
+    # Español
+    "garcia", "garcía", "rodriguez", "rodríguez", "martinez", "martínez",
+    "lopez", "lópez", "gonzalez", "gonzález", "hernandez", "hernández",
+    "perez", "pérez", "sanchez", "sánchez", "ramirez", "ramírez", "torres",
+    "flores", "rivera", "gomez", "gómez", "diaz", "díaz", "cruz", "morales",
+    "reyes", "gutierrez", "gutiérrez", "ortiz", "jimenez", "jiménez",
+    "ruiz", "alvarez", "álvarez", "mendoza", "castillo", "vasquez",
+    "vazquez", "vázquez", "fernandez", "fernández", "romero", "herrera",
+    "medina", "aguilar", "castro", "vargas", "ramos", "molina", "navarro",
+    "dominguez", "domínguez", "gil", "serrano", "blanco", "suarez", "suárez",
+    # Inglés
+    "smith", "johnson", "williams", "brown", "jones", "miller", "davis",
+    "wilson", "taylor", "moore", "jackson", "martin", "lee", "walker",
+    "hall", "allen", "young", "king", "wright", "scott", "green", "baker",
+    "adams", "nelson", "hill", "campbell", "mitchell", "roberts", "carter",
+    "phillips", "evans", "turner", "parker", "collins", "edwards",
+    "stewart", "morris", "murphy", "cook", "rogers", "morgan", "peterson",
+    "cooper", "reed", "bailey", "bell", "kelly", "howard", "ward", "cox",
+}
+
+UBICACIONES: Set[str] = {
+    "madrid", "barcelona", "valencia", "sevilla", "bilbao", "malaga",
+    "málaga", "zaragoza", "españa", "espana", "spain", "portugal", "lisboa",
+    "lisbon", "mexico", "méxico", "guadalajara", "monterrey", "colombia",
+    "bogota", "bogotá", "medellin", "medellín", "argentina", "chile",
+    "santiago", "peru", "perú", "lima", "ecuador", "quito", "venezuela",
+    "caracas", "uruguay", "montevideo", "paraguay", "bolivia", "panama",
+    "panamá", "guatemala", "honduras", "nicaragua", "dominicana",
+    "latam", "latinoamerica", "latinoamérica", "europa", "europe",
+    "london", "londres", "paris", "parís", "berlin", "berlín", "amsterdam",
+    "dublin", "dublín", "francia", "france", "alemania", "germany",
+    "italia", "italy", "miami", "texas", "florida", "california",
+    "york", "usa", "eeuu",
+}
+
+NOMBRES_PILA: Set[str] = {
+    # Español
+    "maria", "maría", "marta", "beatriz", "carmen", "laura", "ana", "lucia",
+    "lucía", "sara", "paula", "claudia", "cristina", "patricia", "raquel",
+    "silvia", "elena", "irene", "alba", "andrea", "natalia", "monica",
+    "mónica", "rocio", "rocío", "sandra", "sonia", "teresa", "veronica",
+    "verónica", "julia", "eva", "ines", "inés", "nuria", "alicia", "angela",
+    "ángela", "isabel", "sofia", "sofía", "valentina", "camila", "daniela",
+    "gabriela", "alejandra", "fernanda", "jose", "josé", "juan", "carlos",
+    "luis", "antonio", "javier", "david", "daniel", "miguel", "alejandro",
+    "manuel", "francisco", "pablo", "sergio", "jorge", "alberto", "fernando",
+    "diego", "raul", "raúl", "ivan", "iván", "ruben", "rubén", "oscar",
+    "óscar", "adrian", "adrián", "alvaro", "álvaro", "marcos", "victor",
+    "víctor", "hugo", "mario", "gonzalo", "andres", "andrés", "ricardo",
+    "eduardo", "roberto", "pedro",
+    # Inglés
+    "john", "michael", "james", "robert", "william", "mary", "jennifer",
+    "linda", "elizabeth", "susan", "jessica", "karen", "emily", "emma",
+    "olivia", "peter", "thomas", "richard", "charles", "christopher",
+    "matthew", "anthony", "mark", "steven", "paul", "andrew", "joshua",
+    "kevin", "brian", "george", "kelly", "amy", "anna", "rachel", "sophie",
+}
+
+RUIDO_NO_SKILL: Set[str] = (RUIDO_PORTAL_EMPLEO | RUIDO_RECLUTAMIENTO
+                            | UBICACIONES | NOMBRES_PILA | APELLIDOS_COMUNES)
+
+
+# ---------------------------------------------------------------------------
 # Utilidades de texto
 # ---------------------------------------------------------------------------
 
 def _normalizar(texto: str) -> str:
     return re.sub(r"[^\w\sáéíóúüñ.#+]", " ", texto.lower())
+
+
+def _kw_presente(texto_n: str, kw: str) -> bool:
+    """
+    True si la keyword aparece como palabra/frase COMPLETA en el texto
+    normalizado. Evita falsos positivos por substring: «get» no debe
+    coincidir dentro de «targeted», ni «ens» dentro de «citizens».
+    """
+    kw_n = _normalizar(kw).strip()
+    if not kw_n:
+        return False
+    patron = re.escape(kw_n).replace("\\ ", " ")
+    patron = re.sub(r"\s+", r"\\s+", patron)
+    patron = r"(?<![a-z0-9áéíóúüñ])" + patron + r"(?![a-z0-9áéíóúüñ])"
+    return re.search(patron, texto_n) is not None
 
 
 def _extraer_compuestos(texto: str) -> List[str]:
@@ -237,13 +382,16 @@ def _tokens_propios(texto: str) -> Set[str]:
     # Siglas: 2-6 caracteres en mayúsculas/dígitos
     for m in re.finditer(r"\b([A-Z][A-Z0-9]{1,5})\b", texto):
         w = m.group(1).lower()
-        if w not in STOPWORDS:
+        if w not in STOPWORDS and w not in RUIDO_NO_SKILL:
             propios.add(w)
 
     # Nombres propios a mitad de oración: precedidos por minúscula o coma
-    for m in re.finditer(r"[a-z,]\s+([A-Z][a-z]{2,15})\b", texto):
+    # EN LA MISMA LÍNEA (un salto de línea indica inicio de oración/título,
+    # donde las mayúsculas no implican producto/tecnología).
+    for m in re.finditer(r"[a-z,][ \t]+([A-Z][a-z]{2,15})\b", texto):
         w = m.group(1).lower()
-        if w not in STOPWORDS and w not in _NO_PROPIOS:
+        if (w not in STOPWORDS and w not in _NO_PROPIOS
+                and w not in RUIDO_NO_SKILL):
             propios.add(w)
 
     return propios
@@ -336,14 +484,14 @@ def _titulo_en_cv(titulo: str, cv_texto: str) -> bool:
     titulo_n = re.sub(r"\s+", " ", _normalizar(titulo)).strip()
     if not titulo_n:
         return True
-    # 1. Frase exacta presente
-    if titulo_n in cv_n:
+    # 1. Frase exacta presente (como frase completa, no substring)
+    if _kw_presente(cv_n, titulo_n):
         return True
     # 2. Sin palabras de seniority
     nucleo = re.sub(r"\b(senior|sr|junior|jr|lead|principal|staff|mid|semi\s*senior|ssr)\b",
                     "", titulo_n)
     nucleo = re.sub(r"\s+", " ", nucleo).strip()
-    if nucleo and nucleo != titulo_n and nucleo in cv_n:
+    if nucleo and nucleo != titulo_n and _kw_presente(cv_n, nucleo):
         return True
     return False
 
@@ -390,7 +538,7 @@ def _analizar_cobertura(
     texto_cv_n = _normalizar(texto_cv)
     cubiertas, sugeridas = [], []
     for kw in kw_vacante:
-        if kw in texto_cv_n:
+        if _kw_presente(texto_cv_n, kw):
             cubiertas.append(kw)
         else:
             sugeridas.append(kw)
