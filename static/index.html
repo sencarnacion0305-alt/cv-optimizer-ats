@@ -5,49 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CV Optimizer ATS</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
     /* ── Reset & variables ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0f1117;
-      --surface:  #1a1d27;
-      --border:   #2e3244;
-      --accent:   #6c63ff;
-      --accent2:  #a78bfa;
-      --green:    #22c55e;
-      --orange:   #f59e0b;
-      --red:      #ef4444;
-      --text:     #e2e8f0;
-      --muted:    #8892a4;
-      --radius:   12px;
+      --bg:        #F8FAFC;
+      --surface:   #FFFFFF;
+      --surface2:  #F1F5F9;
+      --border:    #E2E8F0;
+      --border2:   #CBD5E1;
+      --accent:    #2563EB;
+      --accent2:   #1D4ED8;
+      --teal:      #0D9488;
+      --green:     #16A34A;
+      --orange:    #D97706;
+      --red:       #DC2626;
+      --text:      #0F172A;
+      --muted:     #64748B;
+      --radius:    12px;
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --shadow: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: var(--font-body);
       min-height: 100vh;
       padding: 2rem 1rem 4rem;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── Header ────────────────────────────────────────────────── */
-    header {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
+    header { text-align: center; margin-bottom: 2.5rem; }
     header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-family: var(--font-display);
+      font-size: 1.9rem;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
     }
-    header p {
-      color: var(--muted);
-      margin-top: .4rem;
-      font-size: .95rem;
-    }
+    header h1 .logo { color: var(--accent); display: inline-flex; }
+    header p { color: var(--muted); margin-top: .5rem; font-size: .95rem; }
 
     /* ── Layout ────────────────────────────────────────────────── */
     .container { max-width: 1100px; margin: 0 auto; }
@@ -65,31 +70,32 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 1.25rem;
+      box-shadow: var(--shadow);
     }
     .card label {
       display: block;
-      font-size: .8rem;
+      font-family: var(--font-display);
+      font-size: .82rem;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--muted);
+      color: var(--text);
       margin-bottom: .6rem;
     }
     textarea {
       width: 100%;
       height: 220px;
-      background: var(--bg);
+      background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
+      font-family: var(--font-body);
       font-size: .9rem;
       line-height: 1.6;
       padding: .75rem;
       resize: vertical;
       outline: none;
-      transition: border-color .2s;
+      transition: border-color .2s, box-shadow .2s;
     }
-    textarea:focus { border-color: var(--accent); }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
     textarea::placeholder { color: var(--muted); }
 
     /* ── Upload button ──────────────────────────────────────────── */
@@ -98,51 +104,54 @@
       align-items: center;
       gap: .6rem;
       margin-top: .6rem;
+      flex-wrap: wrap;
     }
     .btn-upload {
       display: inline-flex;
       align-items: center;
       gap: .4rem;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
       font-size: .8rem;
-      padding: .35rem .8rem;
+      font-weight: 500;
+      padding: .4rem .85rem;
       cursor: pointer;
-      transition: border-color .2s, color .2s;
+      transition: border-color .2s, color .2s, background .2s;
     }
-    .btn-upload:hover { border-color: var(--accent); color: var(--accent2); }
+    .btn-upload:hover { border-color: var(--accent); color: var(--accent); background: #EFF6FF; }
     .upload-status {
       font-size: .78rem;
       color: var(--muted);
     }
-    .upload-status.ok  { color: #86efac; }
-    .upload-status.err { color: #fca5a5; }
+    .upload-status.ok  { color: var(--green); }
+    .upload-status.err { color: var(--red); }
 
     /* ── Button ─────────────────────────────────────────────────── */
     .btn-wrap { text-align: center; margin: 1.5rem 0; }
     button#analizar {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: var(--accent);
       color: #fff;
       border: none;
-      border-radius: 50px;
-      padding: .85rem 3rem;
+      border-radius: 10px;
+      padding: .85rem 2.6rem;
+      font-family: var(--font-display);
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity .2s, transform .15s;
-      letter-spacing: .03em;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 1px 2px rgba(37,99,235,.3);
     }
-    button#analizar:hover  { opacity: .9; transform: translateY(-1px); }
+    button#analizar:hover  { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.25); }
     button#analizar:active { transform: translateY(0); }
-    button#analizar:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    button#analizar:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── Spinner ─────────────────────────────────────────────────── */
     .spinner {
       display: inline-block;
       width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,.3);
+      border: 2px solid rgba(255,255,255,.4);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin .7s linear infinite;
@@ -154,11 +163,11 @@
     /* ── Error ───────────────────────────────────────────────────── */
     #error-box {
       display: none;
-      background: rgba(239,68,68,.1);
-      border: 1px solid rgba(239,68,68,.4);
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
       border-radius: var(--radius);
       padding: 1rem 1.25rem;
-      color: #fca5a5;
+      color: var(--red);
       margin-bottom: 1.5rem;
     }
 
@@ -167,7 +176,7 @@
 
     .results-grid {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 290px 1fr;
       gap: 1.25rem;
       align-items: start;
     }
@@ -180,10 +189,11 @@
       border-radius: var(--radius);
       padding: 1.5rem;
       text-align: center;
+      box-shadow: var(--shadow);
     }
     .score-card .score-label {
       font-size: .75rem;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .08em;
       color: var(--muted);
@@ -212,8 +222,9 @@
       position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
+      font-family: var(--font-display);
       font-size: 2rem;
-      font-weight: 800;
+      font-weight: 700;
     }
     .score-desc {
       margin-top: .75rem;
@@ -225,7 +236,7 @@
     .kw-section { margin-top: 1.25rem; text-align: left; }
     .kw-section h4 {
       font-size: .75rem;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .07em;
       color: var(--muted);
@@ -238,20 +249,22 @@
       padding: .25rem .65rem;
       border-radius: 50px;
     }
-    .chip-green { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.3); }
-    .chip-orange { background: rgba(245,158,11,.12); color: #fcd34d; border: 1px solid rgba(245,158,11,.3); }
+    .chip-green { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+    .chip-orange { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
 
     /* Right column */
     .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
 
     /* CV adaptado */
-    .cv-section .card-title {
-      font-size: .8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      color: var(--muted);
+    .cv-section .card-title, .card-title {
+      font-family: var(--font-display);
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--text);
       margin-bottom: .9rem;
+      display: flex;
+      align-items: center;
+      gap: .45rem;
     }
     .cv-resumen {
       font-size: .93rem;
@@ -260,9 +273,10 @@
     }
     .cv-subsection { margin-top: 1rem; }
     .cv-subsection h4 {
+      font-family: var(--font-display);
       font-size: .78rem;
-      font-weight: 700;
-      color: var(--accent2);
+      font-weight: 600;
+      color: var(--teal);
       text-transform: uppercase;
       letter-spacing: .06em;
       margin-bottom: .5rem;
@@ -280,10 +294,14 @@
       position: relative;
     }
     .cv-subsection ul li::before {
-      content: "▸";
+      content: "";
       position: absolute;
       left: 0;
-      color: var(--accent);
+      top: .55em;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
     }
 
     /* Notas */
@@ -296,14 +314,15 @@
       display: flex;
       gap: .75rem;
       align-items: flex-start;
-      background: rgba(108,99,255,.06);
-      border: 1px solid rgba(108,99,255,.15);
+      background: #EFF6FF;
+      border: 1px solid #DBEAFE;
       border-radius: 8px;
       padding: .75rem 1rem;
       font-size: .88rem;
       line-height: 1.5;
+      color: var(--text);
     }
-    .nota-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+    .nota-icon { color: var(--accent); flex-shrink: 0; margin-top: .05rem; display: inline-flex; }
 
     /* ── CV generado ─────────────────────────────────────────────── */
     .cv-generado-card { margin-top: 1.5rem; }
@@ -316,8 +335,9 @@
       margin-bottom: 1rem;
     }
     .cv-generado-header h3 {
+      font-family: var(--font-display);
       font-size: 1rem;
-      font-weight: 700;
+      font-weight: 600;
       display: flex;
       align-items: center;
       gap: .5rem;
@@ -326,27 +346,30 @@
     .btn-action {
       display: inline-flex;
       align-items: center;
-      gap: .35rem;
-      padding: .45rem 1rem;
-      border-radius: 6px;
+      gap: .4rem;
+      padding: .5rem 1rem;
+      border-radius: 8px;
       font-size: .82rem;
       font-weight: 600;
       cursor: pointer;
-      border: none;
-      transition: opacity .2s, transform .15s;
+      border: 1px solid transparent;
+      transition: background .2s, transform .15s, border-color .2s;
     }
-    .btn-action:hover { opacity: .85; transform: translateY(-1px); }
-    .btn-copy     { background: rgba(108,99,255,.2); color: var(--accent2); border: 1px solid rgba(108,99,255,.35); }
-    .btn-download { background: rgba(34,197,94,.15); color: #86efac;       border: 1px solid rgba(34,197,94,.3); }
-    .btn-generar  { background: linear-gradient(135deg,var(--accent),var(--accent2)); color: #fff; }
+    .btn-action:hover { transform: translateY(-1px); }
+    .btn-copy     { background: #EFF6FF; color: var(--accent2); border-color: #BFDBFE; }
+    .btn-copy:hover { background: #DBEAFE; }
+    .btn-download { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
+    .btn-download:hover { background: #D1FAE5; }
+    .btn-generar  { background: var(--accent); color: #fff; }
+    .btn-generar:hover { background: var(--accent2); }
     #cv-generado-texto {
       width: 100%;
       height: 360px;
-      background: var(--bg);
+      background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
-      font-family: 'Courier New', monospace;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
       font-size: .82rem;
       line-height: 1.65;
       padding: 1rem;
@@ -367,9 +390,9 @@
       margin-right: .2rem;
     }
     .chip-purple {
-      background: rgba(108,99,255,.15);
+      background: #DBEAFE;
       color: var(--accent2);
-      border: 1px solid rgba(108,99,255,.3);
+      border: 1px solid #BFDBFE;
     }
     #generar-status {
       font-size: .8rem;
@@ -380,12 +403,16 @@
 
     /* Section title */
     .section-title {
-      font-size: .8rem;
-      font-weight: 700;
+      font-family: var(--font-display);
+      font-size: .82rem;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: .07em;
       color: var(--muted);
       margin-bottom: .75rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
     }
 
     /* ── Tabs ──────────────────────────────────────────────────── */
@@ -397,37 +424,44 @@
       flex-wrap: wrap;
     }
     .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
       background: var(--surface);
       color: var(--muted);
       border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: .6rem 1.4rem;
-      font-size: .92rem;
-      font-weight: 600;
+      border-radius: 10px;
+      padding: .6rem 1.15rem;
+      font-family: var(--font-display);
+      font-size: .88rem;
+      font-weight: 500;
       cursor: pointer;
       transition: all .18s ease;
     }
-    .tab-btn:hover { color: var(--text); border-color: var(--accent); }
+    .tab-btn:hover { color: var(--accent); border-color: var(--accent); }
     .tab-btn.active {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: var(--accent);
       color: #fff;
-      border-color: transparent;
+      border-color: var(--accent);
+      box-shadow: 0 1px 3px rgba(37,99,235,.3);
     }
+    .tab-btn .ti { font-size: 16px; }
     .tab-content { display: none; }
     .tab-content.active { display: block; animation: fadeIn .3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
     /* ── ATS report ────────────────────────────────────────────── */
     .ats-dropzone {
-      border: 2px dashed var(--border);
+      border: 2px dashed var(--border2);
       border-radius: var(--radius);
       padding: 2.5rem 1.5rem;
       text-align: center;
       transition: border-color .2s ease, background .2s ease;
       cursor: pointer;
+      background: var(--surface);
     }
-    .ats-dropzone:hover { border-color: var(--accent); background: rgba(108,99,255,.05); }
-    .ats-dropzone .big-icon { font-size: 2.5rem; display: block; margin-bottom: .75rem; }
+    .ats-dropzone:hover { border-color: var(--accent); background: #EFF6FF; }
+    .ats-dropzone .big-icon { color: var(--accent); display: inline-flex; margin-bottom: .6rem; }
     .ats-dropzone .hint { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
 
     .ats-summary {
@@ -438,41 +472,44 @@
     }
     .ats-summary .score-circle-wrap { flex-shrink: 0; }
     .ats-summary-text { flex: 1; min-width: 220px; }
-    .ats-summary-text h3 { font-size: 1.3rem; margin-bottom: .35rem; }
+    .ats-summary-text h3 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; margin-bottom: .35rem; }
     .ats-summary-text p { color: var(--muted); font-size: .9rem; line-height: 1.5; }
     .ats-badges { display: flex; gap: .6rem; margin-top: .75rem; flex-wrap: wrap; }
     .ats-badge {
       font-size: .8rem; font-weight: 600;
       padding: .25rem .7rem; border-radius: 999px;
     }
-    .ats-badge.err  { background: rgba(239,68,68,.15);  color: #fca5a5; }
-    .ats-badge.warn { background: rgba(245,158,11,.15); color: #fcd34d; }
-    .ats-badge.ok   { background: rgba(34,197,94,.15);  color: #86efac; }
+    .ats-badge.err  { background: #FEE2E2; color: #B91C1C; }
+    .ats-badge.warn { background: #FEF3C7; color: #B45309; }
+    .ats-badge.ok   { background: #DCFCE7; color: #15803D; }
 
     .ats-cat { margin-top: 1.25rem; }
     .ats-cat-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: .6rem;
     }
-    .ats-cat-header .name { font-weight: 700; font-size: 1rem; }
+    .ats-cat-header .name { font-family: var(--font-display); font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: .4rem; }
     .ats-cat-header .pts {
       font-size: .82rem; color: var(--muted);
-      background: var(--bg); padding: .2rem .6rem; border-radius: 999px;
+      background: var(--surface2); padding: .2rem .6rem; border-radius: 999px;
     }
     .ats-cat-bar {
-      height: 6px; background: var(--bg); border-radius: 999px;
+      height: 6px; background: var(--surface2); border-radius: 999px;
       overflow: hidden; margin-bottom: .85rem;
     }
     .ats-cat-bar > span { display: block; height: 100%; border-radius: 999px; transition: width .5s ease; }
     .ats-check {
       display: flex; gap: .7rem; padding: .6rem .8rem;
       border-radius: 8px; margin-bottom: .5rem;
-      background: var(--bg); border-left: 3px solid var(--border);
+      background: var(--surface2); border-left: 3px solid var(--border);
     }
     .ats-check.ok    { border-left-color: var(--green); }
     .ats-check.warning { border-left-color: var(--orange); }
     .ats-check.error { border-left-color: var(--red); }
-    .ats-check .ico { font-size: 1.05rem; flex-shrink: 0; }
+    .ats-check .ico { flex-shrink: 0; display: inline-flex; margin-top: .1rem; }
+    .ats-check.ok .ico { color: var(--green); }
+    .ats-check.warning .ico { color: var(--orange); }
+    .ats-check.error .ico { color: var(--red); }
     .ats-check .body .t { font-weight: 600; font-size: .9rem; margin-bottom: .15rem; }
     .ats-check .body .d { color: var(--muted); font-size: .82rem; line-height: 1.45; }
 
@@ -483,7 +520,7 @@
       gap: .8rem;
     }
     .parse-field {
-      background: var(--bg);
+      background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: .7rem .9rem;
@@ -493,8 +530,8 @@
       color: var(--muted); margin-bottom: .25rem;
     }
     .parse-field .value { font-size: .92rem; font-weight: 600; word-break: break-word; }
-    .parse-field.missing { border-color: rgba(239,68,68,.4); background: rgba(239,68,68,.06); }
-    .parse-field.missing .value { color: #fca5a5; font-style: italic; font-weight: 500; }
+    .parse-field.missing { border-color: #FCA5A5; background: #FEF2F2; }
+    .parse-field.missing .value { color: var(--red); font-style: italic; font-weight: 500; }
 
     .parse-job {
       border-left: 3px solid var(--accent);
@@ -502,7 +539,7 @@
       margin-bottom: .9rem;
     }
     .parse-job .role { font-weight: 600; font-size: .92rem; }
-    .parse-job .org  { color: var(--accent2); font-size: .84rem; }
+    .parse-job .org  { color: var(--teal); font-size: .84rem; }
     .parse-job .per  { color: var(--muted); font-size: .78rem; margin-top: .1rem; }
     .plain-list { list-style: none; }
     .plain-list li {
@@ -515,12 +552,12 @@
     .vac-input {
       width: 100%;
       min-height: 90px;
-      background: var(--bg);
+      background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
       padding: .7rem .9rem;
-      font-family: inherit;
+      font-family: var(--font-body);
       font-size: .88rem;
       resize: vertical;
       margin-bottom: .6rem;
@@ -538,14 +575,15 @@
       border-radius: var(--radius);
       padding: 1rem 1.2rem;
       margin-bottom: .9rem;
+      box-shadow: var(--shadow);
     }
     .bullet-row { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .5rem; }
     .bullet-row .tag {
       font-size: .68rem; font-weight: 700; text-transform: uppercase;
       padding: .15rem .5rem; border-radius: 5px; flex-shrink: 0; margin-top: .1rem;
     }
-    .bullet-row .tag.before { background: rgba(239,68,68,.15); color: #fca5a5; }
-    .bullet-row .tag.after  { background: rgba(34,197,94,.15); color: #86efac; }
+    .bullet-row .tag.before { background: #FEE2E2; color: #B91C1C; }
+    .bullet-row .tag.after  { background: #DCFCE7; color: #15803D; }
     .bullet-row .txt { font-size: .88rem; line-height: 1.5; }
     .bullet-row.old .txt { color: var(--muted); text-decoration: line-through; }
     .bullet-metric {
@@ -557,8 +595,8 @@
       font-size: .68rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .03em; padding: .15rem .5rem; border-radius: 999px;
     }
-    .bullet-badge.b-verbo   { background: rgba(108,99,255,.18); color: #c4b5fd; }
-    .bullet-badge.b-metrica { background: rgba(34,197,94,.15);  color: #86efac; }
+    .bullet-badge.b-verbo   { background: #DBEAFE; color: #1D4ED8; }
+    .bullet-badge.b-metrica { background: #DCFCE7; color: #15803D; }
 
     /* ── Job title match ───────────────────────────────────────── */
     .job-title-box {
@@ -568,36 +606,72 @@
       font-size: .85rem;
       line-height: 1.4;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--surface2);
     }
     .job-title-box .jt-label {
       font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
       color: var(--muted); margin-bottom: .25rem;
     }
-    .job-title-box .jt-value { font-weight: 700; }
-    .job-title-box.ok    { border-color: rgba(34,197,94,.4); }
-    .job-title-box.miss  { border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.06); }
+    .job-title-box .jt-value { font-weight: 700; font-family: var(--font-display); }
+    .job-title-box.ok    { border-color: #A7F3D0; background: #ECFDF5; }
+    .job-title-box.miss  { border-color: #FDE68A; background: #FFFBEB; }
     .job-title-box .jt-status { margin-top: .3rem; font-size: .8rem; }
-    .job-title-box.ok   .jt-status { color: #86efac; }
-    .job-title-box.miss .jt-status { color: #fcd34d; }
+    .job-title-box.ok   .jt-status { color: #047857; }
+    .job-title-box.miss .jt-status { color: #B45309; }
+
+    /* ── Tracker de aplicaciones ───────────────────────────────── */
+    .trk-stats { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .trk-stat { flex: 1; min-width: 90px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .8rem 1rem; box-shadow: var(--shadow); }
+    .trk-stat .n { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; }
+    .trk-stat .l { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: .15rem; }
+    .trk-form { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+    @media (max-width: 600px) { .trk-form { grid-template-columns: 1fr; } }
+    .trk-form .full { grid-column: 1 / -1; }
+    .trk-form input, .trk-form select, .trk-form textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: var(--font-body);
+      font-size: .88rem; padding: .55rem .7rem; outline: none;
+    }
+    .trk-form input:focus, .trk-form select:focus, .trk-form textarea:focus { border-color: var(--accent); }
+    .trk-row { display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; border: 1px solid var(--border); border-radius: 10px; margin-bottom: .6rem; background: var(--surface); box-shadow: var(--shadow); }
+    .trk-row .main { flex: 1; min-width: 0; }
+    .trk-row .role { font-family: var(--font-display); font-weight: 600; font-size: .95rem; }
+    .trk-row .meta { font-size: .8rem; color: var(--muted); margin-top: .1rem; }
+    .trk-row .score-pill { font-family: var(--font-display); font-weight: 600; font-size: .9rem; padding: .2rem .55rem; border-radius: 8px; background: var(--surface2); }
+    .trk-estado {
+      font-size: .72rem; font-weight: 600; padding: .25rem .65rem; border-radius: 999px; white-space: nowrap;
+    }
+    .e-borrador  { background: #F1F5F9; color: #475569; }
+    .e-enviado   { background: #DBEAFE; color: #1D4ED8; }
+    .e-entrevista{ background: #FEF3C7; color: #B45309; }
+    .e-oferta    { background: #DCFCE7; color: #15803D; }
+    .e-rechazado { background: #FEE2E2; color: #B91C1C; }
+    .trk-del { background: none; border: none; color: var(--muted); cursor: pointer; padding: .3rem; border-radius: 6px; display: inline-flex; transition: color .2s, background .2s; }
+    .trk-del:hover { color: var(--red); background: #FEF2F2; }
+    .trk-filters { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .trk-filter { font-size: .8rem; padding: .35rem .8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-family: var(--font-body); }
+    .trk-filter.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .trk-empty { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: .9rem; }
   </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css" />
 </head>
 <body>
 <div class="container">
 
   <!-- Header -->
   <header>
-    <h1>⚡ CV Optimizer ATS</h1>
-    <p>Analiza tu CV contra una vacante y obtén recomendaciones para superar los filtros ATS</p>
+    <h1><span class="logo"><i class="ti ti-bolt" aria-hidden="true"></i></span> CV Optimizer ATS</h1>
+    <p>Analiza tu CV contra una vacante y supera los filtros ATS</p>
   </header>
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab-btn active" id="tabbtn-adaptar" onclick="cambiarTab('adaptar')">🎯 Adaptar a vacante</button>
-    <button class="tab-btn" id="tabbtn-ats" onclick="cambiarTab('ats')">📋 Análisis ATS</button>
-    <button class="tab-btn" id="tabbtn-parsing" onclick="cambiarTab('parsing')">👁️ Vista del reclutador</button>
-    <button class="tab-btn" id="tabbtn-comparar" onclick="cambiarTab('comparar')">🔀 Comparar vacantes</button>
-    <button class="tab-btn" id="tabbtn-bullets" onclick="cambiarTab('bullets')">✍️ Mejorar bullets</button>
+    <button class="tab-btn active" id="tabbtn-adaptar" onclick="cambiarTab('adaptar')"><i class="ti ti-target-arrow" aria-hidden="true"></i> Adaptar a vacante</button>
+    <button class="tab-btn" id="tabbtn-ats" onclick="cambiarTab('ats')"><i class="ti ti-clipboard-check" aria-hidden="true"></i> Análisis ATS</button>
+    <button class="tab-btn" id="tabbtn-parsing" onclick="cambiarTab('parsing')"><i class="ti ti-eye" aria-hidden="true"></i> Vista del reclutador</button>
+    <button class="tab-btn" id="tabbtn-comparar" onclick="cambiarTab('comparar')"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Comparar vacantes</button>
+    <button class="tab-btn" id="tabbtn-bullets" onclick="cambiarTab('bullets')"><i class="ti ti-pencil" aria-hidden="true"></i> Mejorar bullets</button>
+    <button class="tab-btn" id="tabbtn-tracker" onclick="cambiarTab('tracker')"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis aplicaciones</button>
   </div>
 
   <!-- ════════════ TAB: Adaptar a vacante ════════════ -->
@@ -606,22 +680,22 @@
   <!-- Inputs -->
   <div class="input-grid">
     <div class="card">
-      <label for="cv">📄 Tu CV</label>
+      <label for="cv"><i class="ti ti-file-text" aria-hidden="true"></i> Tu CV</label>
       <textarea id="cv" placeholder="Pega aquí el contenido de tu CV en texto plano...
 
 Ejemplo:
 Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabajé en Empresa XYZ construyendo APIs REST. Manejo Docker, Git y PostgreSQL..."></textarea>
       <div class="upload-row">
-        <label class="btn-upload" for="archivo-cv">📎 Subir PDF o DOCX</label>
+        <label class="btn-upload" for="archivo-cv"><i class="ti ti-paperclip" aria-hidden="true"></i> Subir PDF o DOCX</label>
         <input type="file" id="archivo-cv" accept=".pdf,.docx,.doc" style="display:none" onchange="subirArchivo(this)" />
         <span class="upload-status" id="upload-status">o pega el texto arriba</span>
       </div>
     </div>
     <div class="card">
-      <label for="vacante">🏢 Descripción de la vacante</label>
-      <textarea id="vacante" placeholder="Pega aquí la descripción completa del puesto (incluyendo beneficios, sobre la empresa, etc.). El botón 🧹 extrae solo lo importante."></textarea>
+      <label for="vacante"><i class="ti ti-building" aria-hidden="true"></i> Descripción de la vacante</label>
+      <textarea id="vacante" placeholder="Pega aquí la descripción completa del puesto (incluyendo beneficios, sobre la empresa, etc.). El botón Limpiar extrae solo lo importante."></textarea>
       <div class="upload-row">
-        <button class="btn-upload" onclick="limpiarVacante()">🧹 Limpiar vacante</button>
+        <button class="btn-upload" onclick="limpiarVacante()"><i class="ti ti-eraser" aria-hidden="true"></i> Limpiar vacante</button>
         <span class="upload-status" id="limpiar-status">elimina beneficios y ruido</span>
       </div>
     </div>
@@ -655,12 +729,12 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
           <div id="job-title-box" class="job-title-box" style="display:none"></div>
 
           <div class="kw-section">
-            <h4>✅ Keywords cubiertas</h4>
+            <h4><i class="ti ti-circle-check" aria-hidden="true"></i> Keywords cubiertas</h4>
             <div class="chips" id="chips-cubiertas"></div>
           </div>
 
           <div class="kw-section" style="margin-top:1rem">
-            <h4>⚠️ Keywords sugeridas</h4>
+            <h4><i class="ti ti-alert-triangle" aria-hidden="true"></i> Keywords sugeridas</h4>
             <div class="chips" id="chips-sugeridas"></div>
           </div>
         </div>
@@ -670,7 +744,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <div class="right-col">
 
         <div class="card cv-section">
-          <div class="card-title">📝 CV Adaptado</div>
+          <div class="card-title"><i class="ti ti-file-pencil" aria-hidden="true"></i> CV Adaptado</div>
           <div class="cv-resumen" id="cv-resumen"></div>
           <div class="cv-subsection">
             <h4>Experiencia relevante</h4>
@@ -683,7 +757,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         </div>
 
         <div class="card">
-          <div class="section-title">💡 Recomendaciones de mejora</div>
+          <div class="section-title"><i class="ti ti-bulb" aria-hidden="true"></i> Recomendaciones de mejora</div>
           <div class="notas-list" id="notas-list"></div>
         </div>
 
@@ -693,7 +767,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     <!-- Adaptar DOCX original -->
     <div class="card cv-generado-card" style="margin-top:1.5rem">
       <div class="cv-generado-header">
-        <h3>📄 Descargar CV Adaptado</h3>
+        <h3><i class="ti ti-download" aria-hidden="true"></i> Descargar CV Adaptado</h3>
       </div>
       <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">
         Sube tu CV en formato <strong style="color:var(--text)">DOCX</strong>.
@@ -701,14 +775,14 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       </p>
       <div class="upload-row">
         <label class="btn-upload" for="docx-original" style="font-size:.85rem;padding:.5rem 1rem">
-          📎 Seleccionar CV (.docx)
+          <i class="ti ti-paperclip" aria-hidden="true"></i> Seleccionar CV (.docx)
         </label>
         <input type="file" id="docx-original" accept=".docx" style="display:none" onchange="mostrarNombreDocx(this)"/>
         <span id="docx-nombre" class="upload-status">ningún archivo seleccionado</span>
       </div>
       <div style="margin-top:.85rem">
         <button class="btn-action btn-generar" style="padding:.6rem 1.8rem" onclick="adaptarDocxOriginal()">
-          ✨ Adaptar y Descargar DOCX
+          <i class="ti ti-wand" aria-hidden="true"></i> Adaptar y Descargar DOCX
         </button>
         <span id="adaptar-docx-status" class="upload-status" style="margin-left:.75rem"></span>
       </div>
@@ -721,7 +795,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   <div id="tab-ats" class="tab-content">
 
     <div class="card">
-      <div class="card-title">📋 Análisis de compatibilidad ATS</div>
+      <div class="card-title"><i class="ti ti-clipboard-check" aria-hidden="true"></i> Análisis de compatibilidad ATS</div>
       <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
         Sube tu CV y revisamos si pasará los filtros automáticos: <strong style="color:var(--text)">formato</strong>,
         estructura, datos de contacto y calidad del contenido. <strong style="color:var(--text)">No necesitas vacante.</strong>
@@ -729,7 +803,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       </p>
 
       <label class="ats-dropzone" for="ats-file" id="ats-dropzone">
-        <span class="big-icon">📄</span>
+        <span class="big-icon"><i class="ti ti-file-upload" style="font-size:2.4rem" aria-hidden="true"></i></span>
         <strong>Haz clic para subir tu CV</strong>
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="ats-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarATS(this)" />
@@ -769,14 +843,14 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   <div id="tab-parsing" class="tab-content">
 
     <div class="card">
-      <div class="card-title">👁️ Vista del reclutador — cómo el ATS lee tu CV</div>
+      <div class="card-title"><i class="ti ti-eye" aria-hidden="true"></i> Vista del reclutador — cómo el ATS lee tu CV</div>
       <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
         Reconstruimos los datos que un sistema ATS logra extraer de tu CV. Lo que aparezca
         <strong style="color:var(--text)">en rojo</strong> es información que el ATS <strong style="color:var(--text)">no pudo detectar</strong>
         y que el reclutador nunca verá.
       </p>
       <label class="ats-dropzone" for="parsing-file">
-        <span class="big-icon">🔍</span>
+        <span class="big-icon"><i class="ti ti-zoom-scan" style="font-size:2.4rem" aria-hidden="true"></i></span>
         <strong>Haz clic para subir tu CV</strong>
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="parsing-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarParsing(this)" />
@@ -803,19 +877,19 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       </div>
 
       <div class="card" style="margin-top:1.25rem">
-        <div class="section-title">📇 Datos extraídos</div>
+        <div class="section-title"><i class="ti ti-id" aria-hidden="true"></i> Datos extraídos</div>
         <div class="parse-grid" id="parsing-campos"></div>
       </div>
 
       <div class="results-grid" style="margin-top:1.25rem">
         <div class="card">
-          <div class="section-title">💼 Experiencia detectada</div>
+          <div class="section-title"><i class="ti ti-briefcase" aria-hidden="true"></i> Experiencia detectada</div>
           <div id="parsing-puestos"></div>
         </div>
         <div class="card">
-          <div class="section-title">🎓 Educación detectada</div>
+          <div class="section-title"><i class="ti ti-school" aria-hidden="true"></i> Educación detectada</div>
           <ul id="parsing-educacion" class="plain-list"></ul>
-          <div class="section-title" style="margin-top:1rem">🛠️ Skills detectadas</div>
+          <div class="section-title" style="margin-top:1rem"><i class="ti ti-tool" aria-hidden="true"></i> Skills detectadas</div>
           <div class="chips" id="parsing-skills"></div>
         </div>
       </div>
@@ -827,7 +901,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   <div id="tab-comparar" class="tab-content">
 
     <div class="card">
-      <div class="card-title">🔀 Keywords del mercado — compara varias vacantes</div>
+      <div class="card-title"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Keywords del mercado — compara varias vacantes</div>
       <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
         Pega <strong style="color:var(--text)">2 a 5 vacantes del mismo tipo de puesto</strong> (una por bloque).
         Extraemos las keywords que se repiten para decirte qué es <strong style="color:var(--text)">imprescindible</strong> en el mercado.
@@ -837,13 +911,13 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         <textarea class="vac-input" placeholder="Vacante 1: pega aquí la primera descripción..."></textarea>
         <textarea class="vac-input" placeholder="Vacante 2: pega aquí la segunda descripción..."></textarea>
       </div>
-      <button class="btn-upload" onclick="agregarVacante()" style="margin-top:.5rem">➕ Añadir otra vacante</button>
+      <button class="btn-upload" onclick="agregarVacante()" style="margin-top:.5rem"><i class="ti ti-plus" aria-hidden="true"></i> Añadir otra vacante</button>
 
-      <label style="display:block;margin-top:1.25rem;font-weight:600;font-size:.9rem">📄 Tu CV (opcional)</label>
+      <label style="display:block;margin-top:1.25rem;font-weight:600;font-size:.9rem"><i class="ti ti-file-text" aria-hidden="true"></i> Tu CV (opcional)</label>
       <textarea id="comparar-cv" class="vac-input" placeholder="Pega tu CV para ver qué keywords del mercado ya cubres..." style="margin-top:.4rem"></textarea>
 
       <div style="margin-top:1rem">
-        <button class="btn-action btn-generar" onclick="compararVacantes()">🔍 Comparar vacantes</button>
+        <button class="btn-action btn-generar" onclick="compararVacantes()"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Comparar vacantes</button>
         <span id="comparar-status" class="upload-status" style="margin-left:.75rem"></span>
       </div>
     </div>
@@ -852,15 +926,15 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <div class="card">
         <p id="comparar-resumen" style="font-size:.95rem;margin-bottom:1rem"></p>
         <div class="kw-section">
-          <h4 style="color:#fca5a5">🔴 Imprescindibles (en casi todas)</h4>
+          <h4 style="color:#B91C1C;display:flex;align-items:center;gap:.4rem"><span style="width:9px;height:9px;border-radius:50%;background:#DC2626;display:inline-block;flex-shrink:0"></span> Imprescindibles (en casi todas)</h4>
           <div class="chips" id="comparar-imp"></div>
         </div>
         <div class="kw-section" style="margin-top:1rem">
-          <h4 style="color:#fcd34d">🟡 Muy pedidas (en la mayoría)</h4>
+          <h4 style="color:#B45309;display:flex;align-items:center;gap:.4rem"><span style="width:9px;height:9px;border-radius:50%;background:#D97706;display:inline-block;flex-shrink:0"></span> Muy pedidas (en la mayoría)</h4>
           <div class="chips" id="comparar-muy"></div>
         </div>
         <div class="kw-section" style="margin-top:1rem">
-          <h4 style="color:var(--muted)">⚪ Ocasionales</h4>
+          <h4 style="color:var(--muted);display:flex;align-items:center;gap:.4rem"><span style="width:9px;height:9px;border-radius:50%;background:#94A3B8;display:inline-block;flex-shrink:0"></span> Ocasionales</h4>
           <div class="chips" id="comparar-oca"></div>
         </div>
       </div>
@@ -872,13 +946,13 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   <div id="tab-bullets" class="tab-content">
 
     <div class="card">
-      <div class="card-title">✍️ Reescribir bullets débiles</div>
+      <div class="card-title"><i class="ti ti-pencil" aria-hidden="true"></i> Reescribir bullets débiles</div>
       <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
         Detectamos los logros que empiezan con verbos débiles ("Responsible for", "Worked on", "Helped"…)
         y los reescribimos con <strong style="color:var(--text)">verbos de acción</strong>. Sube tu CV.
       </p>
       <label class="ats-dropzone" for="bullets-file">
-        <span class="big-icon">✏️</span>
+        <span class="big-icon"><i class="ti ti-pencil" style="font-size:2.4rem" aria-hidden="true"></i></span>
         <strong>Haz clic para subir tu CV</strong>
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="bullets-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarBullets(this)" />
@@ -895,10 +969,54 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
   </div><!-- /tab-bullets -->
 
+  <!-- ════════════ TAB: Mis aplicaciones (tracker) ════════════ -->
+  <div id="tab-tracker" class="tab-content">
+
+    <div class="trk-stats" id="trk-stats"></div>
+
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-title"><i class="ti ti-plus" aria-hidden="true"></i> Añadir aplicación</div>
+      <p style="font-size:.84rem;color:var(--muted);margin:.3rem 0 1rem">
+        Lleva el control de a qué empleos aplicaste, su estado y el score ATS de cada uno.
+        Se guarda en este navegador (privado, no se sube a ningún servidor).
+      </p>
+      <div class="trk-form">
+        <input id="trk-puesto" placeholder="Puesto (ej. SOC Analyst)" />
+        <input id="trk-empresa" placeholder="Empresa (ej. Telefónica)" />
+        <select id="trk-estado">
+          <option value="borrador">Borrador</option>
+          <option value="enviado">Enviado</option>
+          <option value="entrevista">Entrevista</option>
+          <option value="oferta">Oferta</option>
+          <option value="rechazado">Rechazado</option>
+        </select>
+        <input id="trk-score" type="number" min="0" max="100" placeholder="Score ATS (0-100)" />
+        <input id="trk-link" class="full" placeholder="Link a la vacante (opcional)" />
+        <textarea id="trk-notas" class="full" rows="2" placeholder="Notas (opcional)"></textarea>
+      </div>
+      <div style="margin-top:.85rem">
+        <button class="btn-action btn-generar" onclick="trkAgregar()"><i class="ti ti-plus" aria-hidden="true"></i> Guardar aplicación</button>
+        <span id="trk-form-status" class="upload-status" style="margin-left:.5rem"></span>
+      </div>
+    </div>
+
+    <div class="trk-filters" id="trk-filters">
+      <button class="trk-filter active" data-f="todas" onclick="trkFiltrar('todas',this)">Todas</button>
+      <button class="trk-filter" data-f="borrador" onclick="trkFiltrar('borrador',this)">Borrador</button>
+      <button class="trk-filter" data-f="enviado" onclick="trkFiltrar('enviado',this)">Enviado</button>
+      <button class="trk-filter" data-f="entrevista" onclick="trkFiltrar('entrevista',this)">Entrevista</button>
+      <button class="trk-filter" data-f="oferta" onclick="trkFiltrar('oferta',this)">Oferta</button>
+      <button class="trk-filter" data-f="rechazado" onclick="trkFiltrar('rechazado',this)">Rechazado</button>
+    </div>
+
+    <div id="trk-lista"></div>
+
+  </div><!-- /tab-tracker -->
+
 </div><!-- /container -->
 
 <script>
-  const ICONS = ["💡","🎯","📌","🔑","📈","✏️"];
+  const NOTA_ICON = '<i class="ti ti-bulb" aria-hidden="true"></i>';
 
   async function analizar() {
     const cv      = document.getElementById("cv").value.trim();
@@ -951,7 +1069,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     fill.style.strokeDashoffset = offset;
 
     // Color según score
-    const color = score >= 70 ? "#22c55e" : score >= 40 ? "#f59e0b" : "#ef4444";
+    const color = score >= 70 ? "#16A34A" : score >= 40 ? "#D97706" : "#DC2626";
     fill.style.stroke = color;
 
     const numEl = document.getElementById("score-number");
@@ -961,9 +1079,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     animarNumero(numEl, 0, score, 1000);
 
     const desc = document.getElementById("score-desc");
-    if      (score >= 70) { desc.textContent = "Excelente compatibilidad 🚀"; desc.style.color = "#22c55e"; }
-    else if (score >= 40) { desc.textContent = "Compatibilidad media 📊";     desc.style.color = "#f59e0b"; }
-    else                  { desc.textContent = "Baja compatibilidad ⚠️";      desc.style.color = "#ef4444"; }
+    if      (score >= 70) { desc.textContent = "Excelente compatibilidad"; desc.style.color = "#16A34A"; }
+    else if (score >= 40) { desc.textContent = "Compatibilidad media";     desc.style.color = "#D97706"; }
+    else                  { desc.textContent = "Baja compatibilidad";      desc.style.color = "#DC2626"; }
 
     // ── Job title match ─────────────────────────────────────────
     const jt = document.getElementById("job-title-box");
@@ -972,7 +1090,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       jt.className = "job-title-box " + (ok ? "ok" : "miss");
       jt.style.display = "block";
       jt.innerHTML =
-        `<div class="jt-label">🎯 Cargo objetivo de la vacante</div>` +
+        `<div class="jt-label"><i class="ti ti-target-arrow" aria-hidden="true"></i> Cargo objetivo de la vacante</div>` +
         `<div class="jt-value">${escapeHtml(d.titulo_vacante)}</div>` +
         `<div class="jt-status">${ok
           ? "✓ Tu CV ya menciona este cargo"
@@ -997,7 +1115,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     d.notas_para_usuario.forEach((nota, i) => {
       const div = document.createElement("div");
       div.className = "nota-item";
-      div.innerHTML = `<span class="nota-icon">${ICONS[i % ICONS.length]}</span><span>${nota}</span>`;
+      div.innerHTML = `<span class="nota-icon">${NOTA_ICON}</span><span>${nota}</span>`;
       notasEl.appendChild(div);
     });
 
@@ -1216,11 +1334,11 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       }
 
       status.textContent = `✅ CV adaptado para: "${data.titulo_puesto}"`;
-      status.style.color = "#86efac";
+      status.style.color = "#15803D";
 
     } catch (e) {
       status.textContent = "❌ " + (e.message || "Error al generar el CV");
-      status.style.color = "#fca5a5";
+      status.style.color = "#DC2626";
     }
   }
 
@@ -1231,7 +1349,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       const status = document.getElementById("generar-status");
       const prev = status.textContent;
       status.textContent = "📋 ¡Copiado al portapapeles!";
-      status.style.color = "#86efac";
+      status.style.color = "#15803D";
       setTimeout(() => { status.textContent = prev; }, 2000);
     });
   }
@@ -1272,12 +1390,12 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       URL.revokeObjectURL(url);
 
       status.textContent = `✅ ${formato.toUpperCase()} descargado`;
-      status.style.color = "#86efac";
+      status.style.color = "#15803D";
       setTimeout(() => { status.textContent = prevStatus; status.style.color = ""; }, 3000);
 
     } catch (e) {
       status.textContent = "❌ " + (e.message || "Error al generar el archivo");
-      status.style.color = "#fca5a5";
+      status.style.color = "#DC2626";
     }
   }
 
@@ -1325,7 +1443,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const circumference = 2 * Math.PI * 54;
     const fill = document.getElementById("ats-score-fill");
     fill.style.strokeDashoffset = circumference - (score / 100) * circumference;
-    const color = score >= 70 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#ef4444";
+    const color = score >= 70 ? "#16A34A" : score >= 50 ? "#D97706" : "#DC2626";
     fill.style.stroke = color;
     const numEl = document.getElementById("ats-score-number");
     numEl.style.color = color;
@@ -1345,16 +1463,16 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     if (d.n_advertencias > 0)
       badges.innerHTML += `<span class="ats-badge warn">${d.n_advertencias} mejora(s)</span>`;
     if (d.n_errores === 0 && d.n_advertencias === 0)
-      badges.innerHTML += `<span class="ats-badge ok">Sin problemas 🎉</span>`;
+      badges.innerHTML += `<span class="ats-badge ok">Sin problemas</span>`;
 
     // Categorías
     const cont = document.getElementById("ats-categorias");
     cont.innerHTML = "";
-    const ICO = { ok: "✅", warning: "⚠️", error: "❌" };
+    const ICO = { ok: '<i class="ti ti-circle-check" aria-hidden="true"></i>', warning: '<i class="ti ti-alert-triangle" aria-hidden="true"></i>', error: '<i class="ti ti-circle-x" aria-hidden="true"></i>' };
     d.categorias.forEach(cat => {
       const tienePts = cat.max_puntos > 0;
       const pct = tienePts ? Math.round(cat.puntos / cat.max_puntos * 100) : 0;
-      const barColor = pct >= 80 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
+      const barColor = pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626";
 
       let checksHtml = "";
       cat.checks.forEach(ch => {
@@ -1418,7 +1536,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const circ = 2 * Math.PI * 54;
     const fill = document.getElementById("parsing-score-fill");
     fill.style.strokeDashoffset = circ - (score / 100) * circ;
-    const color = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
+    const color = score >= 80 ? "#16A34A" : score >= 60 ? "#D97706" : "#DC2626";
     fill.style.stroke = color;
     const numEl = document.getElementById("parsing-score-number");
     numEl.style.color = color;
@@ -1428,7 +1546,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const badges = document.getElementById("parsing-badges");
     badges.innerHTML = d.no_detectados.length
       ? `<span class="ats-badge err">${d.no_detectados.length} campo(s) no detectado(s)</span>`
-      : `<span class="ats-badge ok">Datos completos 🎉</span>`;
+      : `<span class="ats-badge ok">Datos completos</span>`;
 
     // Campos
     const etiquetas = {
@@ -1455,19 +1573,19 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
             ${p.empresa ? `<div class="org">${escapeHtml(p.empresa)}</div>` : ""}
             <div class="per">${escapeHtml(p.periodo)}</div>
           </div>`).join("")
-      : `<p style="color:#fca5a5;font-size:.85rem">✗ El ATS no detectó experiencia laboral con fechas claras.</p>`;
+      : `<p style="color:#DC2626;font-size:.85rem">✗ El ATS no detectó experiencia laboral con fechas claras.</p>`;
 
     // Educación
     const ec = document.getElementById("parsing-educacion");
     ec.innerHTML = d.educacion.length
       ? d.educacion.map(e => `<li>${escapeHtml(e)}</li>`).join("")
-      : `<li style="color:#fca5a5">✗ No detectada</li>`;
+      : `<li style="color:#DC2626">✗ No detectada</li>`;
 
     // Skills
     const sc = document.getElementById("parsing-skills");
     sc.innerHTML = d.skills.length
       ? d.skills.map(s => `<span class="chip chip-purple">${escapeHtml(s)}</span>`).join("")
-      : `<span style="color:#fca5a5;font-size:.85rem">✗ No detectadas</span>`;
+      : `<span style="color:#DC2626;font-size:.85rem">✗ No detectadas</span>`;
   }
 
   // ════════════ Comparar vacantes ════════════
@@ -1515,8 +1633,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   function renderComparar(d) {
     document.getElementById("comparar-resumen").textContent = d.resumen;
     const grupos = {
-      imprescindible: { el: "comparar-imp", bg: "rgba(239,68,68,.15)",  col: "#fca5a5" },
-      muy_pedida:     { el: "comparar-muy", bg: "rgba(245,158,11,.12)", col: "#fcd34d" },
+      imprescindible: { el: "comparar-imp", bg: "rgba(239,68,68,.15)",  col: "#DC2626" },
+      muy_pedida:     { el: "comparar-muy", bg: "rgba(245,158,11,.12)", col: "#B45309" },
       ocasional:      { el: "comparar-oca", bg: "var(--bg)",            col: "var(--muted)" },
     };
     Object.values(grupos).forEach(g => document.getElementById(g.el).innerHTML = "");
@@ -1595,13 +1713,120 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     });
   }
 
+  // ════════════ Tracker de aplicaciones (localStorage) ════════════
+  const TRK_KEY = "cvats_aplicaciones";
+  let trkFiltroActual = "todas";
+  const TRK_ESTADOS = { borrador:"Borrador", enviado:"Enviado", entrevista:"Entrevista", oferta:"Oferta", rechazado:"Rechazado" };
+
+  function trkCargar() {
+    try { return JSON.parse(localStorage.getItem(TRK_KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function trkGuardar(apps) { localStorage.setItem(TRK_KEY, JSON.stringify(apps)); }
+
+  function trkAgregar() {
+    const puesto  = document.getElementById("trk-puesto").value.trim();
+    const empresa = document.getElementById("trk-empresa").value.trim();
+    const status  = document.getElementById("trk-form-status");
+    if (!puesto || !empresa) {
+      status.className = "upload-status err";
+      status.textContent = "Completa al menos puesto y empresa";
+      return;
+    }
+    const apps = trkCargar();
+    apps.unshift({
+      id: Date.now(),
+      puesto, empresa,
+      estado: document.getElementById("trk-estado").value,
+      score: document.getElementById("trk-score").value,
+      link:  document.getElementById("trk-link").value.trim(),
+      notas: document.getElementById("trk-notas").value.trim(),
+      fecha: new Date().toISOString(),
+    });
+    trkGuardar(apps);
+    ["trk-puesto","trk-empresa","trk-score","trk-link","trk-notas"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("trk-estado").value = "borrador";
+    status.className = "upload-status ok";
+    status.textContent = "Guardada";
+    setTimeout(() => { status.textContent = ""; }, 2000);
+    trkRender();
+  }
+
+  function trkEliminar(id) {
+    if (!confirm("¿Eliminar esta aplicación?")) return;
+    trkGuardar(trkCargar().filter(a => a.id !== id));
+    trkRender();
+  }
+
+  function trkCambiarEstado(id, estado) {
+    const apps = trkCargar();
+    const a = apps.find(x => x.id === id);
+    if (a) { a.estado = estado; trkGuardar(apps); trkRender(); }
+  }
+
+  function trkFiltrar(f, btn) {
+    trkFiltroActual = f;
+    document.querySelectorAll(".trk-filter").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    trkRender();
+  }
+
+  function trkStatCard(n, label, color) {
+    return `<div class="trk-stat"><div class="n" style="color:${color}">${n}</div><div class="l">${label}</div></div>`;
+  }
+
+  function trkRender() {
+    const apps = trkCargar();
+    const conteo = { borrador:0, enviado:0, entrevista:0, oferta:0, rechazado:0 };
+    apps.forEach(a => { conteo[a.estado] = (conteo[a.estado] || 0) + 1; });
+
+    const stats = document.getElementById("trk-stats");
+    if (stats) stats.innerHTML =
+      trkStatCard(apps.length, "Total", "#0F172A") +
+      trkStatCard(conteo.enviado, "Enviadas", "#1D4ED8") +
+      trkStatCard(conteo.entrevista, "Entrevistas", "#B45309") +
+      trkStatCard(conteo.oferta, "Ofertas", "#15803D");
+
+    const lista = document.getElementById("trk-lista");
+    if (!lista) return;
+    const filtradas = trkFiltroActual === "todas" ? apps : apps.filter(a => a.estado === trkFiltroActual);
+
+    if (!filtradas.length) {
+      lista.innerHTML = `<div class="trk-empty"><i class="ti ti-inbox" style="font-size:1.7rem;display:block;margin-bottom:.4rem" aria-hidden="true"></i>` +
+        (apps.length ? "No hay aplicaciones con este estado." : "Aún no registras aplicaciones. Añade la primera arriba.") + `</div>`;
+      return;
+    }
+
+    lista.innerHTML = "";
+    filtradas.forEach(a => {
+      const fecha = new Date(a.fecha).toLocaleDateString("es", { day:"2-digit", month:"short" });
+      const opts = Object.keys(TRK_ESTADOS).map(e =>
+        `<option value="${e}" ${e===a.estado?"selected":""}>${TRK_ESTADOS[e]}</option>`).join("");
+      const linkHtml = a.link ? `<a href="${escapeHtml(a.link)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">ver vacante</a> · ` : "";
+      const scoreHtml = a.score ? `<span class="score-pill">${parseInt(a.score, 10)}%</span>` : "";
+      const notasHtml = a.notas ? " · " + escapeHtml(a.notas) : "";
+      const div = document.createElement("div");
+      div.className = "trk-row";
+      div.innerHTML =
+        `<div class="main">
+           <div class="role">${escapeHtml(a.puesto)}</div>
+           <div class="meta">${escapeHtml(a.empresa)} · ${linkHtml}${fecha}${notasHtml}</div>
+         </div>
+         ${scoreHtml}
+         <select class="trk-estado e-${a.estado}" onchange="trkCambiarEstado(${a.id}, this.value)" aria-label="Estado">${opts}</select>
+         <button class="trk-del" onclick="trkEliminar(${a.id})" aria-label="Eliminar"><i class="ti ti-trash" aria-hidden="true"></i></button>`;
+      lista.appendChild(div);
+    });
+  }
+
   function mostrarError(msg) {
     const el = document.getElementById("error-box");
     el.textContent = "❌ " + msg;
     el.style.display = "block";
   }
 
-  // Enter en textarea → no hace submit, solo salto de línea (comportamiento normal)
+  // Mostrar las aplicaciones guardadas al cargar
+  trkRender();
 </script>
 </body>
 </html>
