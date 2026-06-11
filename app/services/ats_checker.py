@@ -435,7 +435,6 @@ def _analizar_contenido(lineas: List[str]) -> Tuple[List[Dict], int, int]:
 
     # 2. Metricas cuantificables
     con_metrica = [l for l in logros if re.search(r"\d+\s*%|\d[\d,.]*\s*\+?", l)]
-    sin_metrica = [l for l in logros if l not in con_metrica]
     if logros:
         prop_con = len(con_metrica) / len(logros)
         if prop_con < 0.3:

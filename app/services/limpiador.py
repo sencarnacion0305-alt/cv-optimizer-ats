@@ -109,7 +109,7 @@ def _es_titulo(linea: str) -> bool:
     # Frase corta en Title Case (cada palabra capitalizada) sin puntuación final
     palabras = limpia.split()
     if (3 <= len(palabras) <= 7
-            and not limpia[-1] in ".!,"
+            and limpia[-1] not in ".!,"
             and sum(1 for p in palabras if p[0].isupper()) >= len(palabras) - 1):
         return True
     return False

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Query, Form
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, UploadFile, File, Query, Form, HTTPException
+from fastapi.responses import StreamingResponse
 import io
 from typing import List
 
@@ -30,6 +30,20 @@ router = APIRouter()
 
 MAX_UPLOAD_MB = 5
 MAX_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+
+
+async def _leer_upload(archivo: UploadFile) -> bytes:
+    """
+    Lee el archivo subido de forma segura: lee como máximo MAX_BYTES+1 para NO
+    cargar archivos enormes en memoria (mitiga DoS), y valida tamaño y vacío.
+    """
+    contenido = await archivo.read(MAX_BYTES + 1)
+    if len(contenido) > MAX_BYTES:
+        raise HTTPException(status_code=413,
+                            detail=f"El archivo supera el límite de {MAX_UPLOAD_MB} MB.")
+    if not contenido:
+        raise HTTPException(status_code=400, detail="El archivo está vacío.")
+    return contenido
 
 
 @router.post("/adaptar", response_model=AdaptarCVResponse)
@@ -97,16 +111,15 @@ async def adaptar_docx_original_endpoint(
     import base64
     from docx import Document as DocxDocument
 
-    contenido = await archivo.read()
-    if len(contenido) > MAX_BYTES:
-        return JSONResponse(status_code=413, content={"detail": "Archivo mayor a 5 MB."})
-
-    docx_adaptado = adaptar_cv_docx(contenido, vacante_texto)
-
-    # Extraer texto del DOCX adaptado (parrafos + tablas) para actualizar el textarea
-    doc_adaptado   = DocxDocument(io.BytesIO(docx_adaptado))
-    lineas         = _extraer_todo_texto_docx(doc_adaptado)
-    texto_adaptado = _limpiar("\n".join(lineas))
+    contenido = await _leer_upload(archivo)
+    try:
+        docx_adaptado = adaptar_cv_docx(contenido, vacante_texto)
+        doc_adaptado   = DocxDocument(io.BytesIO(docx_adaptado))
+        lineas         = _extraer_todo_texto_docx(doc_adaptado)
+        texto_adaptado = _limpiar("\n".join(lineas))
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo procesar el DOCX. Verifica que sea un archivo Word válido.")
 
     nombre = (archivo.filename or "CV").rsplit(".", 1)[0] + "_Adaptado.docx"
 
@@ -123,13 +136,14 @@ async def analizar_ats_endpoint(archivo: UploadFile = File(...)):
     Analiza un CV (.docx o .pdf) y devuelve un reporte de compatibilidad ATS
     SIN necesidad de una vacante: formato, estructura, contacto y contenido.
     """
-    contenido = await archivo.read()
-    if len(contenido) > MAX_BYTES:
-        return JSONResponse(
-            status_code=413,
-            content={"detail": f"El archivo supera el límite de {MAX_UPLOAD_MB} MB."},
-        )
-    return analizar_ats(contenido, archivo.filename or "archivo")
+    contenido = await _leer_upload(archivo)
+    try:
+        return analizar_ats(contenido, archivo.filename or "archivo")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo analizar el archivo. Sube un DOCX o PDF válido.")
 
 
 @router.post("/comparar-vacantes")
@@ -147,14 +161,15 @@ async def parsing_ats_endpoint(archivo: UploadFile = File(...)):
     Simula como un ATS 'lee' el CV: extrae nombre, contacto, experiencia,
     educacion y skills, y resalta lo que no pudo detectar.
     """
-    contenido = await archivo.read()
-    if len(contenido) > MAX_BYTES:
-        return JSONResponse(
-            status_code=413,
-            content={"detail": f"El archivo supera el límite de {MAX_UPLOAD_MB} MB."},
-        )
-    texto = extraer_texto(contenido, archivo.filename or "archivo")
-    return simular_parsing(texto)
+    contenido = await _leer_upload(archivo)
+    try:
+        texto = extraer_texto(contenido, archivo.filename or "archivo")
+        return simular_parsing(texto)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo procesar el archivo. Sube un DOCX o PDF válido.")
 
 
 @router.post("/mejorar-bullets")
@@ -163,14 +178,15 @@ async def mejorar_bullets_endpoint(archivo: UploadFile = File(...)):
     Detecta bullets con verbos debiles en el CV y los reescribe con
     verbos de accion (por reglas, sin API).
     """
-    contenido = await archivo.read()
-    if len(contenido) > MAX_BYTES:
-        return JSONResponse(
-            status_code=413,
-            content={"detail": f"El archivo supera el límite de {MAX_UPLOAD_MB} MB."},
-        )
-    texto = extraer_texto(contenido, archivo.filename or "archivo")
-    return mejorar_bullets(texto)
+    contenido = await _leer_upload(archivo)
+    try:
+        texto = extraer_texto(contenido, archivo.filename or "archivo")
+        return mejorar_bullets(texto)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo procesar el archivo. Sube un DOCX o PDF válido.")
 
 
 @router.post("/extraer-cv")
@@ -179,13 +195,12 @@ async def extraer_cv_endpoint(archivo: UploadFile = File(...)):
     Recibe un archivo .pdf o .docx y devuelve el texto extraído.
     El frontend usa este endpoint para llenar el textarea del CV.
     """
-    contenido = await archivo.read()
-
-    if len(contenido) > MAX_BYTES:
-        return JSONResponse(
-            status_code=413,
-            content={"detail": f"El archivo supera el límite de {MAX_UPLOAD_MB} MB."},
-        )
-
-    texto = extraer_texto(contenido, archivo.filename or "archivo")
+    contenido = await _leer_upload(archivo)
+    try:
+        texto = extraer_texto(contenido, archivo.filename or "archivo")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo leer el archivo. Sube un DOCX o PDF válido.")
     return {"texto": texto, "nombre": archivo.filename}

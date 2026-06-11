@@ -9,7 +9,7 @@ Clasifica cada keyword segun en cuantas vacantes aparece:
 Si se aporta el texto del CV, marca cuales ya cubre el candidato.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from app.services.adaptador import _keywords_de, _normalizar, _kw_presente
 

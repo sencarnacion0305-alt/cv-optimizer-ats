@@ -46,7 +46,7 @@ GERUNDIOS = {
     "overseeing": "Oversaw", "administering": "Administered",
     "configuring": "Configured", "deploying": "Deployed", "resolving": "Resolved",
     "troubleshooting": "Troubleshot", "improving": "Improved",
-    "planning": "Planned", "setting": "Set", "managing": "Managed",
+    "planning": "Planned", "setting": "Set",
 }
 
 METRICA_RE = re.compile(r"\d+\s*%|\d[\d,.]*\s*\+|\b\d{2,}\b|\$\s*\d")

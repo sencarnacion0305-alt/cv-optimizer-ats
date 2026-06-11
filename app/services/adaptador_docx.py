@@ -7,7 +7,7 @@ Adapta un CV en formato DOCX a una vacante especifica.
 
 import io
 import re
-from typing import List, Optional
+from typing import List
 
 from app.services.adaptador import (
     _keywords_de, _analizar_cobertura, _normalizar, _kw_presente,
@@ -137,8 +137,6 @@ def _reemplazar_texto_parrafo(parrafo, nuevo_texto: str):
 
 def _agregar_parrafo_con_estilo(doc, referencia, texto: str):
     """Agrega un parrafo nuevo copiando el estilo de un parrafo de referencia."""
-    from docx.oxml.ns import qn
-    import copy
 
     nuevo = doc.add_paragraph()
     # Copiar estilo del parrafo de referencia

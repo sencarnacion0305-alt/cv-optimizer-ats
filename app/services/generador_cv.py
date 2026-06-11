@@ -11,7 +11,7 @@ se copia tal cual del CV original.
 """
 
 import re
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 from app.services.adaptador import (
     _keywords_de,
@@ -245,8 +245,7 @@ def generar_cv_adaptado(cv_texto: str, vacante_texto: str) -> dict:
 
     # Reconstruir el CV modificando solo lo necesario
     lineas_salida = []
-    resumen_encontrado    = False
-    habilidades_encontradas = False
+    resumen_encontrado = False
 
     for seccion in secciones:
         header = seccion["header"]
@@ -264,7 +263,6 @@ def generar_cv_adaptado(cv_texto: str, vacante_texto: str) -> dict:
             lineas_salida.extend(nuevas_lineas)
 
         elif tipo == "habilidades":
-            habilidades_encontradas = True
             nuevas_lineas = _adaptar_habilidades(lineas, cubiertas, sugeridas)
             lineas_salida.extend(nuevas_lineas)
 

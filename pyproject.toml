@@ -1,0 +1,9 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+# Reglas de estilo desactivadas de forma consciente para este proyecto:
+#   E741  variable de una letra (`l`) — usada en comprensiones cortas y legibles
+#   E701  varias sentencias en una línea — asignaciones de formato compactas
+ignore = ["E741", "E701"]
