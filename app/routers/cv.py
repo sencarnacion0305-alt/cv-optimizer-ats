@@ -16,6 +16,7 @@ from app.services.ats_checker import analizar_ats
 from app.services.comparador_vacantes import comparar_vacantes
 from app.services.parser_ats import simular_parsing
 from app.services.mejorador_bullets import mejorar_bullets
+from app.services.plantilla_ats import generar_plantilla_ats
 
 
 class LimpiarVacanteRequest(BaseModel):
@@ -187,6 +188,39 @@ async def mejorar_bullets_endpoint(archivo: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=422,
                             detail="No se pudo procesar el archivo. Sube un DOCX o PDF válido.")
+
+
+@router.post("/plantilla-ats")
+async def plantilla_ats_endpoint(archivo: UploadFile = File(...)):
+    """
+    Reconstruye CUALQUIER CV en una plantilla ATS limpia (una columna, secciones
+    estándar, sin tablas/gráficos). Devuelve el DOCX en base64 y el score ATS
+    antes (original) y después (reconstruido) para mostrar la mejora.
+    """
+    import base64
+
+    contenido = await _leer_upload(archivo)
+    try:
+        texto = extraer_texto(contenido, archivo.filename or "archivo")
+        try:
+            score_antes = analizar_ats(contenido, archivo.filename or "cv")["score"]
+        except Exception:
+            score_antes = None
+        docx_nuevo = generar_plantilla_ats(texto)
+        score_despues = analizar_ats(docx_nuevo, "CV_Plantilla_ATS.docx")["score"]
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo reconstruir el CV. Sube un DOCX o PDF válido.")
+
+    nombre = (archivo.filename or "CV").rsplit(".", 1)[0] + "_Plantilla_ATS.docx"
+    return {
+        "archivo_base64": base64.b64encode(docx_nuevo).decode(),
+        "nombre": nombre,
+        "score_antes": score_antes,
+        "score_despues": score_despues,
+    }
 
 
 @router.post("/extraer-cv")

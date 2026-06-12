@@ -671,6 +671,7 @@
     <button class="tab-btn" id="tabbtn-parsing" onclick="cambiarTab('parsing')"><i class="ti ti-eye" aria-hidden="true"></i> Vista del reclutador</button>
     <button class="tab-btn" id="tabbtn-comparar" onclick="cambiarTab('comparar')"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Comparar vacantes</button>
     <button class="tab-btn" id="tabbtn-bullets" onclick="cambiarTab('bullets')"><i class="ti ti-pencil" aria-hidden="true"></i> Mejorar bullets</button>
+    <button class="tab-btn" id="tabbtn-plantilla" onclick="cambiarTab('plantilla')"><i class="ti ti-file-cv" aria-hidden="true"></i> Plantilla ATS</button>
     <button class="tab-btn" id="tabbtn-tracker" onclick="cambiarTab('tracker')"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis aplicaciones</button>
   </div>
 
@@ -968,6 +969,48 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     </div>
 
   </div><!-- /tab-bullets -->
+
+  <!-- ════════════ TAB: Plantilla ATS ════════════ -->
+  <div id="tab-plantilla" class="tab-content">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-file-cv" aria-hidden="true"></i> Reconstruir en plantilla ATS</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1.25rem">
+        ¿Tu CV tiene tablas, columnas, iconos o gráficos que rompen el parseo? Súbelo y lo
+        reconstruimos en una <strong style="color:var(--text)">plantilla limpia de una columna</strong>,
+        con secciones estándar y fechas consistentes — sin perder tu contenido.
+      </p>
+      <label class="ats-dropzone" for="plantilla-file">
+        <span class="big-icon"><i class="ti ti-file-cv" style="font-size:2.4rem" aria-hidden="true"></i></span>
+        <strong>Haz clic para subir tu CV</strong>
+        <span class="hint">PDF o DOCX · máx. 5 MB</span>
+        <input type="file" id="plantilla-file" accept=".pdf,.docx,.doc" style="display:none" onchange="reconstruirPlantilla(this)" />
+      </label>
+      <div id="plantilla-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
+    </div>
+
+    <div id="plantilla-resultado" class="card" style="display:none;margin-top:1.25rem">
+      <div class="ats-summary">
+        <div style="display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;flex-shrink:0">
+          <div style="text-align:center">
+            <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Antes</div>
+            <div id="plantilla-antes" style="font-family:var(--font-display);font-size:2rem;font-weight:600">—</div>
+          </div>
+          <i class="ti ti-arrow-right" style="font-size:1.4rem;color:var(--muted)" aria-hidden="true"></i>
+          <div style="text-align:center">
+            <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Después</div>
+            <div id="plantilla-despues" style="font-family:var(--font-display);font-size:2rem;font-weight:600;color:var(--green)">—</div>
+          </div>
+        </div>
+        <div class="ats-summary-text">
+          <h3>Plantilla ATS lista</h3>
+          <p>Tu CV reconstruido en formato limpio de una columna, listo para superar cualquier filtro.</p>
+          <div style="margin-top:.7rem">
+            <button class="btn-action btn-download" id="plantilla-download"><i class="ti ti-download" aria-hidden="true"></i> Descargar DOCX</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-plantilla -->
 
   <!-- ════════════ TAB: Mis aplicaciones (tracker) ════════════ -->
   <div id="tab-tracker" class="tab-content">
@@ -1711,6 +1754,46 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
           ${nota}
         </div>`;
     });
+  }
+
+  // ════════════ Plantilla ATS (reconstruir CV) ════════════
+  async function reconstruirPlantilla(input) {
+    const archivo = input.files[0];
+    if (!archivo) return;
+    const status = document.getElementById("plantilla-status");
+    const resultado = document.getElementById("plantilla-resultado");
+    status.className = "upload-status";
+    status.textContent = "⏳ Reconstruyendo " + archivo.name + "…";
+
+    const form = new FormData();
+    form.append("archivo", archivo);
+    try {
+      const res = await fetch("/api/v1/plantilla-ats", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+
+      document.getElementById("plantilla-antes").textContent = data.score_antes != null ? data.score_antes : "—";
+      document.getElementById("plantilla-despues").textContent = data.score_despues != null ? data.score_despues : "—";
+
+      const btn = document.getElementById("plantilla-download");
+      btn.onclick = () => {
+        const bytes = Uint8Array.from(atob(data.archivo_base64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = data.nombre; a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      resultado.style.display = "block";
+      status.className = "upload-status ok";
+      status.textContent = "✅ " + archivo.name + " reconstruido";
+      resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "❌ " + (e.message || "No se pudo reconstruir el CV");
+    }
+    input.value = "";
   }
 
   // ════════════ Tracker de aplicaciones (localStorage) ════════════
