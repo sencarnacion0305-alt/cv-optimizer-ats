@@ -13,6 +13,7 @@ import re
 from typing import List, Set, Tuple
 
 from app.models.schemas import AdaptarCVRequest, AdaptarCVResponse, CVAdaptado
+from app.services.keyword_aliases import equivalentes, norm_alias
 
 
 # ---------------------------------------------------------------------------
@@ -532,13 +533,31 @@ def _keywords_de(texto: str) -> List[str]:
 # Análisis principal
 # ---------------------------------------------------------------------------
 
+def _kw_cubierta(cv_alias: str, kw: str) -> bool:
+    """
+    True si la keyword (o cualquiera de sus equivalentes — sigla, forma expandida
+    o variante de puntuación) aparece en el CV. `cv_alias` debe venir de
+    `norm_alias(cv)`. Esto hace el matching SEMÁNTICO: «aws» cubre «Amazon Web
+    Services», «k8s» cubre «Kubernetes», «node.js» cubre «nodejs», etc.
+    """
+    for variante in equivalentes(kw):
+        if _kw_presente(cv_alias, variante):
+            return True
+    return False
+
+
 def _analizar_cobertura(
     kw_vacante: List[str], texto_cv: str
 ) -> Tuple[List[str], List[str]]:
-    texto_cv_n = _normalizar(texto_cv)
+    """
+    Compara keywords de la vacante contra el CV usando formas canónicas: una
+    keyword cuenta como CUBIERTA si el CV contiene ella o cualquier equivalente.
+    Las SUGERIDAS excluyen, por tanto, todo lo que ya está cubierto por sinónimo.
+    """
+    cv_alias = norm_alias(texto_cv)
     cubiertas, sugeridas = [], []
     for kw in kw_vacante:
-        if _kw_presente(texto_cv_n, kw):
+        if _kw_cubierta(cv_alias, kw):
             cubiertas.append(kw)
         else:
             sugeridas.append(kw)
@@ -574,7 +593,76 @@ def _mejor_resumen(cv_texto: str, kw_vacante: List[str], n: int = 3) -> str:
     return ". ".join(mejores).strip().rstrip(".") + "."
 
 
+# ---------------------------------------------------------------------------
+# Segmentacion de secciones (para no mezclar resumen/experiencia/skills)
+# ---------------------------------------------------------------------------
+
+_HEADERS_SECCION = {
+    "resumen": re.compile(
+        r"^(professional\s+summary|summary|profile|perfil(\s+profesional)?|"
+        r"resumen(\s+profesional)?|objetivo(\s+profesional)?|about\s+me|sobre\s+m[ií])$", re.I),
+    "experiencia": re.compile(
+        r"^(work\s+experience|professional\s+experience|experience|"
+        r"experiencia(\s+(laboral|profesional))?|employment(\s+history)?|"
+        r"trayectoria(\s+profesional)?|historial\s+laboral)$", re.I),
+    "educacion": re.compile(
+        r"^(education|educaci[oó]n|formaci[oó]n(\s+acad[eé]mica)?|academic\s+background)$", re.I),
+    "habilidades": re.compile(
+        r"^(technical\s+skills?|core\s+competencies|skills?|"
+        r"habilidades(\s+(t[eé]cnicas?|clave))?|competencias?|"
+        r"conocimientos(\s+t[eé]cnicos?)?|technologies|tech\s+stack)$", re.I),
+    "idiomas": re.compile(r"^(languages?|idiomas?)$", re.I),
+    "certificaciones": re.compile(r"^(certifications?|certificaciones?|licenses?)$", re.I),
+    "proyectos": re.compile(r"^(projects?|proyectos?)$", re.I),
+    "logros": re.compile(r"^(key\s+achievements?|achievements?|logros|awards?|reconocimientos?)$", re.I),
+    "contacto": re.compile(
+        r"^(contact(\s+information)?|contacto|informaci[oó]n\s+de\s+contacto|datos\s+personales)$", re.I),
+}
+
+
+def _limpiar_bullet(linea: str) -> str:
+    """Quita prefijos de viñeta ('- ', '• ', '* ', '– ', '·', etc.) del inicio."""
+    return re.sub(r"^\s*[-–—•·*▪●○‣◦]+\s+", "", linea.strip())
+
+
+def _segmentar_secciones(cv_texto: str) -> dict:
+    """
+    Divide el CV en secciones por encabezados conocidos. Devuelve
+    {tipo: [lineas]} sin arrastrar contenido de una sección a otra.
+    'encabezado' contiene lo previo a la primera sección (nombre/contacto).
+    """
+    secciones: dict = {"encabezado": []}
+    actual = "encabezado"
+    for linea in cv_texto.splitlines():
+        s = linea.strip().rstrip(":").strip()
+        tipo = None
+        if s and len(s) < 50:
+            for t, pat in _HEADERS_SECCION.items():
+                if pat.match(s):
+                    tipo = t
+                    break
+        if tipo:
+            actual = tipo
+            secciones.setdefault(actual, [])
+        elif linea.strip():
+            secciones.setdefault(actual, []).append(linea.strip())
+    return secciones
+
+
 def _extraer_experiencias(cv_texto: str) -> List[str]:
+    """
+    Extrae bullets de la sección de EXPERIENCIA respetando los encabezados, sin
+    arrastrar frases del resumen y limpiando los prefijos de viñeta. Si el CV no
+    tiene encabezados reconocibles, usa una heurística de respaldo.
+    """
+    secciones = _segmentar_secciones(cv_texto)
+    lineas_exp = secciones.get("experiencia", [])
+    if lineas_exp:
+        exp = [_limpiar_bullet(l) for l in lineas_exp if len(_limpiar_bullet(l)) > 15]
+        if exp:
+            return exp[:6]
+
+    # Respaldo: CV sin encabezados claros → heurística por verbos/fechas
     patrones_exp = re.compile(
         r"(20\d{2}|19\d{2}|empresa|company|trabaj|desarrollé|lideré|"
         r"gestioné|implementé|diseñé|coordiné|worked|developed|led|"
@@ -582,23 +670,35 @@ def _extraer_experiencias(cv_texto: str) -> List[str]:
         r"coordinator|manager|director)",
         re.IGNORECASE,
     )
-    lineas = re.split(r"[\n;.]", cv_texto)
-    exp = [l.strip() for l in lineas if patrones_exp.search(l) and len(l.strip()) > 15]
+    lineas = re.split(r"[\n;]", cv_texto)
+    exp = [_limpiar_bullet(l.strip()) for l in lineas
+           if patrones_exp.search(l) and len(l.strip()) > 15]
     return exp[:5] if exp else _oraciones_de(cv_texto)[:3]
+
+
+# Términos demasiado genéricos para contar como skill en prosa libre
+_SKILLS_EXCLUIR = {"backend", "frontend", "full stack"}
 
 
 def _extraer_habilidades(cv_texto: str, kw_vacante: List[str]) -> List[str]:
     """
-    Extrae habilidades reales: solo términos en TECH_SINGLE o compuestos técnicos
-    presentes en el CV. Prioriza los que también aparecen en la vacante.
+    Extrae habilidades reales (TECH_SINGLE o compuestos técnicos). Prioriza la
+    SECCIÓN de habilidades si existe — así una palabra como «backend» que aparece
+    en prosa del resumen no se cuenta como skill. Usa matching por palabra
+    completa para evitar falsos positivos por substring.
     """
-    texto_n = _normalizar(cv_texto)
+    secciones = _segmentar_secciones(cv_texto)
+    lineas_skills = secciones.get("habilidades", [])
+    fuente = "\n".join(lineas_skills) if lineas_skills else cv_texto
+    texto_n = _normalizar(fuente)
 
-    # Términos técnicos de una palabra presentes en el CV
-    tech_en_cv = [t for t in TECH_SINGLE if t in texto_n]
+    # Términos técnicos de una palabra presentes (palabra completa, sin genéricos)
+    tech_en_cv = [t for t in TECH_SINGLE
+                  if t not in _SKILLS_EXCLUIR and _kw_presente(texto_n, t)]
 
-    # Compuestos técnicos presentes en el CV
-    compuestos_en_cv = _extraer_compuestos(cv_texto)
+    # Compuestos técnicos presentes (excluyendo los demasiado genéricos)
+    compuestos_en_cv = [c for c in _extraer_compuestos(fuente)
+                        if c not in _SKILLS_EXCLUIR]
 
     # Ordenar: primero los que coincidan con la vacante
     kw_vac_set = set(kw_vacante)

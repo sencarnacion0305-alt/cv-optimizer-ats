@@ -10,7 +10,7 @@ import re
 from typing import List
 
 from app.services.adaptador import (
-    _keywords_de, _analizar_cobertura, _normalizar, _kw_presente,
+    _keywords_de, _analizar_cobertura, _normalizar, _kw_cubierta, norm_alias,
     _detectar_titulo_vacante, _titulo_en_cv, _PALABRAS_TITULO,
 )
 from app.services.ats_checker import (
@@ -183,11 +183,10 @@ def _construir_resumen_completo(
     if not base:
         base = "Cybersecurity professional with experience in threat detection and incident response."
 
-    texto_n = _normalizar(base)
-
     # Priorizar las keywords que faltan (sugeridas) antes que las ya cubiertas
     todas_kw   = sugeridas + cubiertas
-    faltantes  = [kw for kw in todas_kw if not _kw_presente(texto_n, kw)]
+    cv_alias   = norm_alias(base)
+    faltantes  = [kw for kw in todas_kw if not _kw_cubierta(cv_alias, kw)]
 
     if not faltantes:
         return base
@@ -472,9 +471,9 @@ def adaptar_cv_docx(docx_bytes: bytes, vacante_texto: str) -> bytes:
     # ── Paso 2: Agregar keywords faltantes a habilidades ─────────
     todos_actualizado = _todos_los_parrafos_docx(doc)
     texto_cv_actual   = "\n".join(p.text for p in todos_actualizado if p.text.strip())
-    texto_n_actual    = _normalizar(texto_cv_actual)
+    cv_alias_actual   = norm_alias(texto_cv_actual)
     kw_faltantes      = [kw for kw in (cubiertas + sugeridas)
-                         if not _kw_presente(texto_n_actual, kw)]
+                         if not _kw_cubierta(cv_alias_actual, kw)]
 
     if kw_faltantes:
         en_habilidades        = False

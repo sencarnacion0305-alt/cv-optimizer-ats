@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple
 
 from app.services.adaptador import (
-    _keywords_de, _analizar_cobertura, _normalizar, _kw_presente,
+    _keywords_de, _analizar_cobertura, _kw_cubierta, norm_alias,
     _detectar_titulo_vacante, _titulo_en_cv,
 )
 from app.services.adaptador_docx import _construir_resumen_completo, _formato_keyword
@@ -359,9 +359,9 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
         base = mapa["resumen"] or mapa["headline"]
         mapa["resumen"] = _construir_resumen_completo(base, cubiertas, sugeridas)
 
-        texto_n = _normalizar(_texto_de_mapa(mapa))
+        cv_alias = norm_alias(_texto_de_mapa(mapa))
         faltantes = [k for k in (cubiertas + sugeridas)
-                     if not _kw_presente(texto_n, k)]
+                     if not _kw_cubierta(cv_alias, k)]
         if faltantes:
             mapa["habilidades"].append(
                 " | ".join(_formato_keyword(k) for k in faltantes))

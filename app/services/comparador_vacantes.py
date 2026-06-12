@@ -11,7 +11,7 @@ Si se aporta el texto del CV, marca cuales ya cubre el candidato.
 
 from typing import Dict, List
 
-from app.services.adaptador import _keywords_de, _normalizar, _kw_presente
+from app.services.adaptador import _keywords_de, _kw_cubierta, norm_alias
 
 
 def _clasificar(frecuencia: int, total: int) -> str:
@@ -49,7 +49,7 @@ def comparar_vacantes(vacantes: List[str], cv_texto: str = "") -> Dict:
                 primera_aparicion[kw] = orden
                 orden += 1
 
-    cv_n = _normalizar(cv_texto) if cv_texto else ""
+    cv_alias = norm_alias(cv_texto) if cv_texto else ""
 
     keywords = []
     for kw, freq in frecuencia.items():
@@ -59,7 +59,7 @@ def comparar_vacantes(vacantes: List[str], cv_texto: str = "") -> Dict:
             "frecuencia": freq,
             "total": total,
             "categoria": categoria,
-            "en_cv": bool(cv_n) and _kw_presente(cv_n, kw),
+            "en_cv": bool(cv_alias) and _kw_cubierta(cv_alias, kw),
         })
 
     # Ordenar: por frecuencia desc, luego por orden de aparicion
@@ -70,7 +70,7 @@ def comparar_vacantes(vacantes: List[str], cv_texto: str = "") -> Dict:
     cubiertas_imp = [k for k in imprescindibles if k["en_cv"]]
 
     resumen = ""
-    if cv_n and imprescindibles:
+    if cv_alias and imprescindibles:
         resumen = (f"Tu CV cubre {len(cubiertas_imp)} de {len(imprescindibles)} "
                    "keywords imprescindibles del mercado.")
     elif imprescindibles:
@@ -84,6 +84,6 @@ def comparar_vacantes(vacantes: List[str], cv_texto: str = "") -> Dict:
         "keywords": keywords,
         "n_imprescindibles": len(imprescindibles),
         "n_cubiertas_imp": len(cubiertas_imp),
-        "tiene_cv": bool(cv_n),
+        "tiene_cv": bool(cv_alias),
         "resumen": resumen,
     }

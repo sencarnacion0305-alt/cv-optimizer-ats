@@ -17,7 +17,8 @@ from app.services.adaptador import (
     _keywords_de,
     _analizar_cobertura,
     _normalizar,
-    _kw_presente,
+    _kw_cubierta,
+    norm_alias,
 )
 
 
@@ -132,8 +133,8 @@ def _adaptar_resumen(lineas_originales: List[str],
         # Usar el resumen original como base
         base = texto_original
         # Agregar keywords que faltan
-        texto_n = _normalizar(base)
-        faltantes = [kw for kw in cubiertas[:2] if not _kw_presente(texto_n, kw)]
+        cv_alias = norm_alias(base)
+        faltantes = [kw for kw in cubiertas[:2] if not _kw_cubierta(cv_alias, kw)]
         if faltantes:
             base = base.rstrip(".") + ". Experiencia demostrada en " + ", ".join(faltantes) + "."
     else:
@@ -285,8 +286,8 @@ def generar_cv_adaptado(cv_texto: str, vacante_texto: str) -> dict:
 
     texto_completo = "\n".join(lineas_salida).strip()
 
-    texto_completo_n = _normalizar(texto_completo)
-    kw_en_resumen = [kw for kw in cubiertas if _kw_presente(texto_completo_n, kw)]
+    cv_alias_final = norm_alias(texto_completo)
+    kw_en_resumen = [kw for kw in cubiertas if _kw_cubierta(cv_alias_final, kw)]
 
     return {
         "texto_completo":        texto_completo,

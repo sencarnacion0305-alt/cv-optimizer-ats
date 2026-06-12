@@ -1,0 +1,8 @@
+# Dependencias solo de desarrollo (no se instalan en producción / Render).
+# Instalar:  pip install -r requirements-dev.txt
+-r requirements.txt
+
+pytest==8.3.4      # tests unitarios (tests/)
+ruff==0.15.17      # linter + formatter
+bandit==1.9.4      # análisis estático de seguridad (SAST)
+pip-audit==2.10.1  # escáner de vulnerabilidades en dependencias (CVE)
