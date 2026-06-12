@@ -39,6 +39,7 @@ _TIPOS = [
     ("idiomas",         r"(languages?|idiomas?)"),
     ("proyectos",       r"(projects?|proyectos?)"),
     ("logros",          r"(achievements?|logros|awards?|reconocimientos?)"),
+    ("referencias",     r"(references?|referencias?)"),
     ("contacto",        r"(contact|contacto|datos\s*personales|informaci[oó]n\s*de\s*contacto)"),
 ]
 
@@ -48,12 +49,14 @@ _CANON = {
         "educacion": "EDUCACIÓN", "habilidades": "HABILIDADES",
         "certificaciones": "CERTIFICACIONES", "idiomas": "IDIOMAS",
         "proyectos": "PROYECTOS", "logros": "LOGROS DESTACADOS",
+        "referencias": "REFERENCIAS", "contacto": "INFORMACIÓN DE CONTACTO",
     },
     "en": {
         "resumen": "PROFESSIONAL SUMMARY", "experiencia": "PROFESSIONAL EXPERIENCE",
         "educacion": "EDUCATION", "habilidades": "SKILLS",
         "certificaciones": "CERTIFICATIONS", "idiomas": "LANGUAGES",
         "proyectos": "PROJECTS", "logros": "KEY ACHIEVEMENTS",
+        "referencias": "REFERENCES", "contacto": "CONTACT INFORMATION",
     },
 }
 
@@ -78,6 +81,7 @@ _VERBO_BULLET = re.compile(
     r"detected|mitigated|analyzed|coordinated|standardized|executed|investigated|"
     r"monitored|deployed|configured|performed|administered|supported|completed|"
     r"identified|correlated|represented|reviewed|hardened|mentored|automated|"
+    r"cut|ran|grew|spearheaded|streamlined|orchestrated|established|"
     r"lider|gestion|desarroll|implement|dise[nñ]|reduj|aument|mejor|coordin|"
     r"detect|analic|resolv|gestion|cre[ée]|logr[ée])", re.I)
 

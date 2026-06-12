@@ -16,7 +16,7 @@ from app.services.ats_checker import analizar_ats
 from app.services.comparador_vacantes import comparar_vacantes
 from app.services.parser_ats import simular_parsing
 from app.services.mejorador_bullets import mejorar_bullets
-from app.services.plantilla_ats import generar_plantilla_ats
+from app.services.optimizador_ats import optimizar_cv
 
 
 class LimpiarVacanteRequest(BaseModel):
@@ -190,12 +190,17 @@ async def mejorar_bullets_endpoint(archivo: UploadFile = File(...)):
                             detail="No se pudo procesar el archivo. Sube un DOCX o PDF válido.")
 
 
-@router.post("/plantilla-ats")
-async def plantilla_ats_endpoint(archivo: UploadFile = File(...)):
+@router.post("/optimizar-cv")
+@router.post("/plantilla-ats")  # alias de compatibilidad
+async def optimizar_cv_endpoint(
+    archivo: UploadFile = File(...),
+    vacante_texto: str = Form(""),
+):
     """
-    Reconstruye CUALQUIER CV en una plantilla ATS limpia (una columna, secciones
-    estándar, sin tablas/gráficos). Devuelve el DOCX en base64 y el score ATS
-    antes (original) y después (reconstruido) para mostrar la mejora.
+    Optimizador ATS completo: reconstruye CUALQUIER CV en una plantilla limpia
+    (una columna, secciones estándar, fechas Mes AAAA, orden cronológico inverso)
+    y, si se aporta la vacante, inyecta título/keywords/acrónimos/métricas.
+    Devuelve el DOCX en base64, la lista de cambios y el score antes/después.
     """
     import base64
 
@@ -206,20 +211,21 @@ async def plantilla_ats_endpoint(archivo: UploadFile = File(...)):
             score_antes = analizar_ats(contenido, archivo.filename or "cv")["score"]
         except Exception:
             score_antes = None
-        docx_nuevo = generar_plantilla_ats(texto)
-        score_despues = analizar_ats(docx_nuevo, "CV_Plantilla_ATS.docx")["score"]
+        resultado = optimizar_cv(texto, vacante_texto or "")
+        score_despues = analizar_ats(resultado["docx"], "CV_Optimizado_ATS.docx")["score"]
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=422,
-                            detail="No se pudo reconstruir el CV. Sube un DOCX o PDF válido.")
+                            detail="No se pudo optimizar el CV. Sube un DOCX o PDF válido.")
 
-    nombre = (archivo.filename or "CV").rsplit(".", 1)[0] + "_Plantilla_ATS.docx"
+    nombre = (archivo.filename or "CV").rsplit(".", 1)[0] + "_Optimizado_ATS.docx"
     return {
-        "archivo_base64": base64.b64encode(docx_nuevo).decode(),
+        "archivo_base64": base64.b64encode(resultado["docx"]).decode(),
         "nombre": nombre,
         "score_antes": score_antes,
         "score_despues": score_despues,
+        "cambios": resultado["cambios"],
     }
 
 
