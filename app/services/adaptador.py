@@ -122,7 +122,7 @@ COMPOUND_TERMS = [
     # Dev / Backend
     "machine learning", "deep learning", "natural language processing",
     "data science", "data engineer", "data analyst", "business intelligence",
-    "full stack", "frontend", "backend", "api rest", "restful api",
+    "api rest", "restful api",
     "microservices", "event driven", "domain driven design",
     "continuous integration", "continuous delivery", "continuous deployment",
     "devops", "mlops", "gitops", "devsecops",
@@ -334,6 +334,18 @@ NOMBRES_PILA: Set[str] = {
 RUIDO_NO_SKILL: Set[str] = (RUIDO_PORTAL_EMPLEO | RUIDO_RECLUTAMIENTO
                             | UBICACIONES | NOMBRES_PILA | APELLIDOS_COMUNES)
 
+# Términos demasiado genéricos para contar como skill/keyword por sí solos.
+# Son palabras de prosa, no tecnologías. Se filtran tanto en la extracción de
+# keywords (no aparecen como cubiertas/sugeridas) como en la de habilidades.
+GENERICO_NO_SKILL: Set[str] = {
+    "backend", "frontend", "fullstack", "full stack", "web", "software",
+    "developer", "development", "developers", "technologies", "technology",
+    "tecnologias", "tecnologías", "tecnologia", "tecnología", "desarrollo",
+    "sistemas", "sistema", "programador", "programacion", "programación",
+    "informatica", "informática", "tecnico", "técnico", "ingenieria", "ingeniería",
+}
+_GEN_NORM: Set[str] = {norm_alias(_g) for _g in GENERICO_NO_SKILL}
+
 
 # ---------------------------------------------------------------------------
 # Utilidades de texto
@@ -526,7 +538,9 @@ def _keywords_de(texto: str) -> List[str]:
                 simples.append(t)
 
     simples_ordenados = sorted(simples, key=lambda x: -freq.get(x, 1))
-    return compuestos + simples_ordenados
+    resultado = compuestos + simples_ordenados
+    # Filtrar términos genéricos de prosa que no son skills reales
+    return [k for k in resultado if norm_alias(k) not in _GEN_NORM]
 
 
 # ---------------------------------------------------------------------------
@@ -557,6 +571,8 @@ def _analizar_cobertura(
     cv_alias = norm_alias(texto_cv)
     cubiertas, sugeridas = [], []
     for kw in kw_vacante:
+        if norm_alias(kw) in _GEN_NORM:
+            continue  # término genérico de prosa: ni cubierta ni sugerida
         if _kw_cubierta(cv_alias, kw):
             cubiertas.append(kw)
         else:
@@ -575,22 +591,57 @@ def _calcular_score(cubiertas: List[str], total_vacante_kw: int) -> int:
 
 
 def _oraciones_de(texto: str) -> List[str]:
-    oraciones = re.split(r"[.\n;]+", texto)
-    return [o.strip() for o in oraciones if len(o.strip()) > 20]
+    """
+    Divide en oraciones por salto de línea, ';' o fin de oración REAL
+    (.!? seguido de espacio y mayúscula). No parte tokens como «Node.js»,
+    «3.5» o «REST APIs», cuyo punto está entre caracteres.
+    """
+    partes = re.split(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿¡])|[\n;]+", texto)
+    return [o.strip() for o in partes if len(o.strip()) > 20]
+
+
+def _es_lista_o_contacto(oracion: str) -> bool:
+    """Una 'oración' que en realidad es una lista de skills o datos de contacto."""
+    if re.search(r"@|linkedin|github\.com|\+\d|\bphone\b|\bemail\b|\btel[eé]fono\b",
+                 oracion, re.IGNORECASE):
+        return True
+    comas = oracion.count(",")
+    palabras = oracion.split()
+    # Muchas comas con items cortos = enumeración de skills, no prosa
+    return comas >= 4 and len(palabras) / (comas + 1) < 3.0
+
+
+def _unir_oraciones(oraciones: List[str]) -> str:
+    """Une oraciones con un único punto y espacio (sin puntos dobles)."""
+    limpias = [o.strip().rstrip(".").strip() for o in oraciones if o.strip()]
+    return (". ".join(limpias) + ".") if limpias else ""
 
 
 def _mejor_resumen(cv_texto: str, kw_vacante: List[str], n: int = 3) -> str:
-    oraciones = _oraciones_de(cv_texto)
+    # 1. Preferir la sección de resumen/perfil del CV (prosa real, oración completa)
+    secciones = _segmentar_secciones(cv_texto)
+    base = " ".join(secciones.get("resumen", [])).strip()
+    if len(base.split()) >= 12:
+        oraciones = _oraciones_de(base)
+        if oraciones:
+            return _unir_oraciones(oraciones[:n])
+
+    # 2. Respaldo: oraciones de prosa, excluyendo listas de skills y contacto
+    todas = _oraciones_de(cv_texto)
+    oraciones = [o for o in todas if not _es_lista_o_contacto(o)] or todas
     if not oraciones:
-        return cv_texto[:200]
-    kw_set = set(kw_vacante)
+        corte = cv_texto.strip()[:200]
+        return corte.rsplit(" ", 1)[0] if len(cv_texto.strip()) > 200 else corte
+
+    kw_set = {_normalizar(k) for k in kw_vacante}
 
     def relevancia(oracion: str) -> int:
-        text_n = _normalizar(oracion)
-        return sum(1 for kw in kw_set if kw in text_n)
+        n_o = _normalizar(oracion)
+        return sum(1 for kw in kw_set if kw in n_o)
 
-    mejores = sorted(oraciones, key=relevancia, reverse=True)[:n]
-    return ". ".join(mejores).strip().rstrip(".") + "."
+    elegidas = sorted(oraciones, key=relevancia, reverse=True)[:n]
+    elegidas = sorted(elegidas, key=oraciones.index)  # conservar orden narrativo
+    return _unir_oraciones(elegidas)
 
 
 # ---------------------------------------------------------------------------
@@ -676,10 +727,6 @@ def _extraer_experiencias(cv_texto: str) -> List[str]:
     return exp[:5] if exp else _oraciones_de(cv_texto)[:3]
 
 
-# Términos demasiado genéricos para contar como skill en prosa libre
-_SKILLS_EXCLUIR = {"backend", "frontend", "full stack"}
-
-
 def _extraer_habilidades(cv_texto: str, kw_vacante: List[str]) -> List[str]:
     """
     Extrae habilidades reales (TECH_SINGLE o compuestos técnicos). Prioriza la
@@ -694,11 +741,11 @@ def _extraer_habilidades(cv_texto: str, kw_vacante: List[str]) -> List[str]:
 
     # Términos técnicos de una palabra presentes (palabra completa, sin genéricos)
     tech_en_cv = [t for t in TECH_SINGLE
-                  if t not in _SKILLS_EXCLUIR and _kw_presente(texto_n, t)]
+                  if norm_alias(t) not in _GEN_NORM and _kw_presente(texto_n, t)]
 
     # Compuestos técnicos presentes (excluyendo los demasiado genéricos)
     compuestos_en_cv = [c for c in _extraer_compuestos(fuente)
-                        if c not in _SKILLS_EXCLUIR]
+                        if norm_alias(c) not in _GEN_NORM]
 
     # Ordenar: primero los que coincidan con la vacante
     kw_vac_set = set(kw_vacante)
