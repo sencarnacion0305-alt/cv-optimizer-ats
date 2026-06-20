@@ -578,6 +578,14 @@ def _kw_negada(cv_alias: str, kw: str) -> bool:
     return False
 
 
+def _keywords_negadas(kw_vacante: List[str], texto_cv: str) -> List[str]:
+    """Keywords que aparecen pero en contexto negativo (no cuentan como cubiertas)."""
+    cv_alias = norm_alias(texto_cv)
+    return [kw for kw in kw_vacante
+            if norm_alias(kw) not in _GEN_NORM
+            and _kw_cubierta(cv_alias, kw) and _kw_negada(cv_alias, kw)]
+
+
 def _analizar_cobertura(
     kw_vacante: List[str], texto_cv: str
 ) -> Tuple[List[str], List[str]]:
@@ -864,6 +872,15 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
             f"El título del puesto «{titulo_vacante}» no aparece en tu CV. "
             "Inclúyelo en tu titular profesional o resumen — los ATS ponderan "
             "mucho la coincidencia de cargo."))
+        notas = notas[:6]
+
+    # Keywords en contexto negativo (SCORE-EX-02)
+    negadas = _keywords_negadas(kw_vacante, cv)
+    if negadas:
+        notas.insert(0, (
+            f"Contexto negativo detectado en: {', '.join(negadas[:3])} "
+            "(p. ej. «sin experiencia en…»). No cuentan como cubiertas; si dominas "
+            "esas habilidades, reformula para no negarlas."))
         notas = notas[:6]
 
     return AdaptarCVResponse(

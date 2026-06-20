@@ -83,6 +83,20 @@ def _bullets_de(cv_texto: str, secciones: Dict[str, List[str]]) -> List[str]:
 # Dimensiones
 # ---------------------------------------------------------------------------
 
+def _peso_posicion(kw: str, secciones) -> float:
+    """
+    Peso de una keyword según DÓNDE aparece (los ATS ponderan la posición):
+    en el resumen/título 1.5x, en experiencia 1.0x, solo en habilidades 0.7x.
+    """
+    if _kw_cubierta(norm_alias(" ".join(secciones.get("resumen", []))), kw):
+        return 1.5
+    if _kw_cubierta(norm_alias(" ".join(secciones.get("experiencia", []))), kw):
+        return 1.0
+    if _kw_cubierta(norm_alias(" ".join(secciones.get("habilidades", []))), kw):
+        return 0.7
+    return 1.0
+
+
 def _dim_keywords(cv: str, vacante: str, cubiertas, sugeridas, kw_vacante,
                   titulo_vacante: str, secciones) -> Dict:
     todas = cubiertas + sugeridas
@@ -91,8 +105,9 @@ def _dim_keywords(cv: str, vacante: str, cubiertas, sugeridas, kw_vacante,
     hard_cub = [k for k in cubiertas if k in hard]
     soft_cub = [k for k in cubiertas if k in soft]
 
-    ratio_hard = len(hard_cub) / len(hard) if hard else 1.0
-    ratio_soft = len(soft_cub) / len(soft) if soft else 1.0
+    # Cobertura PONDERADA por posición: una keyword en el resumen vale más.
+    ratio_hard = min(1.0, sum(_peso_posicion(k, secciones) for k in hard_cub) / len(hard)) if hard else 1.0
+    ratio_soft = min(1.0, sum(_peso_posicion(k, secciones) for k in soft_cub) / len(soft)) if soft else 1.0
     pts_hard = round(22 * ratio_hard)
     pts_soft = round(8 * ratio_soft)
 
@@ -171,12 +186,26 @@ def _dim_estructura(cv: str, secciones) -> Dict:
     return _empaquetar("Estructura y secciones", checks, 20)
 
 
+def _hay_keyword_stuffing(cv: str) -> bool:
+    """True si hay >2 líneas que son listas de keywords sin verbo ni contexto."""
+    verbo_ini = re.compile(
+        r"^\s*(lider|gest|desar|implement|optim|dise|constru|analiz|coordin|"
+        r"led|managed|built|developed|created|designed)", re.IGNORECASE)
+    stuffed = 0
+    for linea in cv.split("\n"):
+        palabras = [w for w in re.split(r"[\s,;|]+", linea.strip()) if len(w) > 2]
+        if len(palabras) >= 6 and "," in linea and not verbo_ini.match(linea.strip()):
+            stuffed += 1
+    return stuffed > 2
+
+
 def _dim_contenido(cv: str, secciones) -> Dict:
     bullets = _bullets_de(cv, secciones)
     con_metrica = sum(1 for b in bullets if tiene_metrica(b))
     con_verbo = sum(1 for b in bullets if _VERBO_ACCION.match(b))
     rellenos = len(_FRASES_RELLENO.findall(cv))
     ratio_verbo = con_verbo / len(bullets) if bullets else 0
+    stuffing = _hay_keyword_stuffing(cv)
 
     pts_metrica = 6 if con_metrica >= 2 else (3 if con_metrica == 1 else 0)
     pts_verbo = 5 if ratio_verbo >= 0.6 else (2 if ratio_verbo >= 0.3 else 0)
@@ -190,6 +219,9 @@ def _dim_contenido(cv: str, secciones) -> Dict:
         {"label": f"Sin frases de relleno ({rellenos} detectadas)", "pts": pts_relleno,
          "max": 4, "ok": rellenos == 0},
     ]
+    if stuffing:
+        checks.append({"label": "Keyword stuffing detectado (penalización -5)",
+                       "pts": -5, "max": 0, "ok": False})
     return _empaquetar("Calidad de contenido", checks, 15)
 
 
@@ -216,7 +248,7 @@ def _dim_cargo(cv: str, titulo_vacante: str) -> Dict:
 
 
 def _empaquetar(nombre: str, checks: List[Dict], maximo: int) -> Dict:
-    puntos = min(maximo, sum(c["pts"] for c in checks))
+    puntos = max(0, min(maximo, sum(c["pts"] for c in checks)))
     return {"nombre": nombre, "puntos": puntos, "max": maximo, "checks": checks}
 
 
