@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from app.routers import cv
 import os
 
@@ -35,6 +35,20 @@ async def cabeceras_seguridad(request: Request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     response.headers["Content-Security-Policy"] = _CSP
     return response
+
+@app.exception_handler(Exception)
+async def error_global(request: Request, exc: Exception):
+    """
+    Garantiza que CUALQUIER error no controlado devuelva JSON (no HTML), para que
+    el frontend nunca falle al hacer .json() sobre una página de error.
+    """
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "No se pudo procesar la solicitud. Intenta de nuevo o "
+                           "verifica que el archivo sea un PDF/DOCX válido.",
+                 "tipo": type(exc).__name__},
+    )
+
 
 # Archivos estáticos (frontend)
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")

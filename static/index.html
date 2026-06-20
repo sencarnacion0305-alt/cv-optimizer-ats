@@ -652,11 +652,730 @@
     .trk-filter { font-size: .8rem; padding: .35rem .8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-family: var(--font-body); }
     .trk-filter.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .trk-empty { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: .9rem; }
+
+    /* Landing page */
+    body {
+      padding: 0;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(37,99,235,.10), transparent 30%),
+        linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 48%, #FFFFFF 100%);
+    }
+    .landing-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(16px);
+      background: rgba(255,255,255,.88);
+      border-bottom: 1px solid rgba(226,232,240,.78);
+    }
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(135deg, #2563EB, #0D9488);
+      box-shadow: 0 10px 24px rgba(37,99,235,.20);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.4rem;
+      font-size: .9rem;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-cta, .landing-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      min-height: 42px;
+      border-radius: 8px;
+      padding: .75rem 1.1rem;
+      font-family: var(--font-display);
+      font-size: .92rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform .18s, box-shadow .18s, background .18s, color .18s, border-color .18s;
+    }
+    .nav-cta, .landing-btn.primary {
+      color: #fff;
+      background: var(--accent);
+      box-shadow: 0 12px 28px rgba(37,99,235,.22);
+    }
+    .nav-cta:hover, .landing-btn.primary:hover {
+      transform: translateY(-1px);
+      background: var(--accent2);
+    }
+    .landing-btn.secondary {
+      color: var(--text);
+      background: #fff;
+      border: 1px solid var(--border2);
+    }
+    .landing-btn.secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .landing-section {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 5.25rem 1.25rem;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(360px, 1.08fr);
+      gap: 3.5rem;
+      align-items: center;
+      min-height: calc(100vh - 68px);
+      padding-top: 4rem;
+      padding-bottom: 4.5rem;
+    }
+    .hero-copy h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.65rem, 6vw, 5.3rem);
+      line-height: .96;
+      letter-spacing: -.055em;
+      color: #07111F;
+      max-width: 760px;
+    }
+    .hero-copy p {
+      margin-top: 1.35rem;
+      max-width: 650px;
+      color: #475569;
+      font-size: 1.08rem;
+      line-height: 1.75;
+    }
+    .hero-actions {
+      display: flex;
+      gap: .8rem;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+    .hero-trust {
+      margin-top: 1.35rem;
+      color: var(--muted);
+      font-size: .88rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .hero-trust span {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+    }
+    .product-preview {
+      background: #07111F;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      padding: 1rem;
+      box-shadow: 0 34px 80px rgba(15,23,42,.24);
+      overflow: hidden;
+    }
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(255,255,255,.70);
+      font-size: .78rem;
+      padding: .3rem .35rem .9rem;
+    }
+    .window-dots {
+      display: inline-flex;
+      gap: .34rem;
+    }
+    .window-dots i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.28);
+      display: block;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: .85rem;
+    }
+    .preview-panel {
+      background: #FFFFFF;
+      border-radius: 12px;
+      padding: 1rem;
+      min-height: 180px;
+    }
+    .preview-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: .86rem;
+      color: var(--text);
+      margin-bottom: .8rem;
+    }
+    .score-big {
+      display: grid;
+      place-items: center;
+      width: 104px;
+      height: 104px;
+      margin: 1.1rem auto;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, #fff 56%, transparent 57%),
+        conic-gradient(#16A34A 0 82%, #E2E8F0 82% 100%);
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #15803D;
+    }
+    .preview-lines {
+      display: grid;
+      gap: .55rem;
+    }
+    .preview-lines span {
+      display: block;
+      height: 10px;
+      border-radius: 99px;
+      background: #E2E8F0;
+    }
+    .preview-lines span:nth-child(2) { width: 84%; }
+    .preview-lines span:nth-child(3) { width: 62%; background: #BFDBFE; }
+    .keyword-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem;
+      margin-top: .9rem;
+    }
+    .keyword-row span {
+      border-radius: 999px;
+      padding: .26rem .58rem;
+      background: #ECFDF5;
+      color: #047857;
+      font-size: .72rem;
+      font-weight: 700;
+    }
+    .job-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .75rem;
+      align-items: center;
+      padding: .65rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .job-row:last-child { border-bottom: 0; }
+    .job-role {
+      font-family: var(--font-display);
+      font-size: .84rem;
+      font-weight: 700;
+    }
+    .job-meta {
+      margin-top: .15rem;
+      color: var(--muted);
+      font-size: .74rem;
+    }
+    .mini-status {
+      border-radius: 999px;
+      padding: .22rem .52rem;
+      font-size: .68rem;
+      font-weight: 800;
+      color: #1D4ED8;
+      background: #DBEAFE;
+    }
+    .section-heading {
+      display: grid;
+      gap: .75rem;
+      max-width: 760px;
+      margin-bottom: 2.1rem;
+    }
+    .section-heading.center {
+      text-align: center;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .section-heading h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.35rem);
+      line-height: 1.03;
+      letter-spacing: -.04em;
+      color: #07111F;
+    }
+    .section-heading p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .value-card, .step-card, .faq-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .value-card i, .step-card .step-num {
+      display: inline-grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: #EFF6FF;
+      color: var(--accent);
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .value-card h3, .step-card h3, .faq-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.08rem;
+      margin-bottom: .5rem;
+    }
+    .value-card p, .step-card p, .faq-card p {
+      color: var(--muted);
+      line-height: 1.62;
+      font-size: .92rem;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: .85rem;
+    }
+    .step-card .step-num {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: .92rem;
+      background: #ECFDF5;
+      color: #047857;
+    }
+    .pricing-band {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 2rem;
+      align-items: center;
+      background: #07111F;
+      color: #fff;
+      border-radius: 20px;
+      padding: clamp(1.4rem, 4vw, 3rem);
+      box-shadow: 0 28px 70px rgba(15,23,42,.20);
+    }
+    .pricing-band h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.05;
+      letter-spacing: -.04em;
+    }
+    .pricing-band p {
+      margin-top: 1rem;
+      color: rgba(255,255,255,.72);
+      line-height: 1.7;
+    }
+    .price-card {
+      background: #fff;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,.2);
+    }
+    .price {
+      display: flex;
+      align-items: flex-end;
+      gap: .35rem;
+      margin: .8rem 0 1rem;
+      font-family: var(--font-display);
+    }
+    .price strong {
+      font-size: 3.4rem;
+      line-height: .9;
+      letter-spacing: -.05em;
+    }
+    .price span {
+      color: var(--muted);
+      font-weight: 700;
+      padding-bottom: .35rem;
+    }
+    .price-list {
+      list-style: none;
+      display: grid;
+      gap: .72rem;
+      margin: 1rem 0 1.3rem;
+    }
+    .price-list li {
+      display: flex;
+      gap: .55rem;
+      align-items: flex-start;
+      color: #334155;
+      line-height: 1.45;
+      font-size: .93rem;
+    }
+    .price-list i { color: var(--green); margin-top: .12rem; }
+    .tracker-showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      align-items: stretch;
+    }
+    .tracker-copy {
+      border-radius: 16px;
+      background: #EFF6FF;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .tracker-copy h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -.04em;
+      margin-bottom: 1rem;
+    }
+    .tracker-copy p {
+      color: #334155;
+      line-height: 1.7;
+    }
+    .tracker-board {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.2rem;
+      box-shadow: var(--shadow);
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .final-cta {
+      text-align: center;
+      padding-bottom: 6rem;
+    }
+    .final-cta .hero-actions {
+      justify-content: center;
+    }
+    .app-section {
+      padding: 4rem 1rem 5rem;
+      background: #F8FAFC;
+      border-top: 1px solid var(--border);
+    }
+    .app-workspace {
+      max-width: 1100px;
+    }
+    .app-workspace header {
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 920px) {
+      .hero,
+      .pricing-band,
+      .tracker-showcase {
+        grid-template-columns: 1fr;
+      }
+      .steps,
+      .value-grid,
+      .faq-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .hero {
+        min-height: auto;
+      }
+    }
+    @media (max-width: 680px) {
+      .nav-links {
+        display: none;
+      }
+      .nav-inner {
+        padding: .85rem 1rem;
+      }
+      .landing-section {
+        padding: 3.6rem 1rem;
+      }
+      .hero {
+        padding-top: 3rem;
+      }
+      .hero-copy h1 {
+        font-size: 2.65rem;
+      }
+      .product-preview {
+        border-radius: 14px;
+        padding: .7rem;
+      }
+      .preview-grid,
+      .steps,
+      .value-grid,
+      .faq-grid {
+        grid-template-columns: 1fr;
+      }
+      .pricing-band,
+      .tracker-copy {
+        border-radius: 14px;
+      }
+    }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css" />
 </head>
 <body>
-<div class="container">
+<nav class="landing-nav" aria-label="Navegacion principal">
+  <div class="nav-inner">
+    <a class="brand" href="#">
+      <span class="brand-mark"><i class="ti ti-bolt" aria-hidden="true"></i></span>
+      CV Optimizer ATS
+    </a>
+    <div class="nav-links">
+      <a href="#servicios">Servicios</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#planes">Planes</a>
+      <a href="#app">Demo</a>
+    </div>
+    <a class="nav-cta" href="#app">Probar gratis</a>
+  </div>
+</nav>
+
+<main>
+  <section class="landing-section hero">
+    <div class="hero-copy">
+      <h1>Consigue m&aacute;s entrevistas con un CV listo para ATS</h1>
+      <p>Convierte cada vacante en una versi&oacute;n optimizada de tu CV, detecta palabras clave, mejora tus bullets y guarda las aplicaciones que ya enviaste desde una sola plataforma.</p>
+      <div class="hero-actions">
+        <a class="landing-btn primary" href="#app">Probar gratis</a>
+        <a class="landing-btn secondary" href="#planes">Ver planes</a>
+      </div>
+      <div class="hero-trust">
+        <span><i class="ti ti-check" aria-hidden="true"></i> Optimizado para filtros ATS</span>
+        <span><i class="ti ti-check" aria-hidden="true"></i> CV descargable en DOCX</span>
+        <span><i class="ti ti-check" aria-hidden="true"></i> Tracker de aplicaciones</span>
+      </div>
+    </div>
+
+    <div class="product-preview" aria-label="Vista previa del producto">
+      <div class="preview-bar">
+        <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>CV Optimizer ATS</span>
+      </div>
+      <div class="preview-grid">
+        <div class="preview-panel">
+          <div class="preview-title">
+            <span>Compatibilidad ATS</span>
+            <span style="color:#16A34A">+28%</span>
+          </div>
+          <div class="score-big">82%</div>
+          <div class="preview-lines" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="keyword-row">
+            <span>Python</span><span>FastAPI</span><span>SQL</span><span>Docker</span>
+          </div>
+        </div>
+        <div class="preview-panel">
+          <div class="preview-title">
+            <span>Mis aplicaciones</span>
+            <span>12</span>
+          </div>
+          <div class="job-row">
+            <div>
+              <div class="job-role">Backend Developer</div>
+              <div class="job-meta">Acme Tech · 82% ATS</div>
+            </div>
+            <span class="mini-status">Entrevista</span>
+          </div>
+          <div class="job-row">
+            <div>
+              <div class="job-role">Data Analyst</div>
+              <div class="job-meta">Nova Labs · 74% ATS</div>
+            </div>
+            <span class="mini-status">Enviado</span>
+          </div>
+          <div class="job-row">
+            <div>
+              <div class="job-role">IT Support</div>
+              <div class="job-meta">CloudOps · 68% ATS</div>
+            </div>
+            <span class="mini-status">Borrador</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section" id="servicios">
+    <div class="section-heading center">
+      <h2>Una plataforma para preparar, adaptar y seguir cada postulaci&oacute;n</h2>
+      <p>No es solo un analizador de CV. Es un flujo completo para pasar de una vacante interesante a una aplicaci&oacute;n lista, medible y organizada.</p>
+    </div>
+    <div class="value-grid">
+      <article class="value-card">
+        <i class="ti ti-target-arrow" aria-hidden="true"></i>
+        <h3>Adapta tu CV a cada vacante</h3>
+        <p>Pega la oferta y tu CV para recibir un score de compatibilidad, keywords cubiertas y sugerencias concretas.</p>
+      </article>
+      <article class="value-card">
+        <i class="ti ti-file-analytics" aria-hidden="true"></i>
+        <h3>Detecta problemas ATS</h3>
+        <p>Revisa formato, secciones, datos de contacto y legibilidad para evitar que tu CV se pierda antes de llegar al reclutador.</p>
+      </article>
+      <article class="value-card">
+        <i class="ti ti-pencil-star" aria-hidden="true"></i>
+        <h3>Mejora tus bullets</h3>
+        <p>Transforma responsabilidades flojas en logros con verbos de acci&oacute;n, m&eacute;tricas y lenguaje m&aacute;s competitivo.</p>
+      </article>
+      <article class="value-card">
+        <i class="ti ti-arrows-shuffle" aria-hidden="true"></i>
+        <h3>Compara varias vacantes</h3>
+        <p>Encuentra las habilidades que m&aacute;s se repiten en el mercado y decide qu&eacute; palabras clave conviene reforzar.</p>
+      </article>
+      <article class="value-card">
+        <i class="ti ti-file-download" aria-hidden="true"></i>
+        <h3>Genera un CV limpio</h3>
+        <p>Reconstruye tu CV en una plantilla ATS-friendly y descarga una versi&oacute;n DOCX lista para ajustar y enviar.</p>
+      </article>
+      <article class="value-card">
+        <i class="ti ti-briefcase" aria-hidden="true"></i>
+        <h3>Guarda tus aplicaciones</h3>
+        <p>Organiza vacantes, empresas, estado, score y notas para no perder oportunidades ni repetir trabajo.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="landing-section" id="como-funciona">
+    <div class="section-heading">
+      <h2>De vacante a CV optimizado en minutos</h2>
+      <p>El producto est&aacute; pensado para usuarios que aplican a varias posiciones y necesitan velocidad sin sacrificar calidad.</p>
+    </div>
+    <div class="steps">
+      <article class="step-card">
+        <span class="step-num">01</span>
+        <h3>Sube tu CV</h3>
+        <p>Usa PDF, DOCX o texto pegado directamente.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">02</span>
+        <h3>Pega la vacante</h3>
+        <p>La plataforma limpia ruido y detecta requisitos clave.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">03</span>
+        <h3>Revisa el score</h3>
+        <p>Ve qu&eacute; falta, qu&eacute; ya cubres y qu&eacute; conviene ajustar.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">04</span>
+        <h3>Genera la versi&oacute;n</h3>
+        <p>Obt&eacute;n un CV m&aacute;s claro, enfocado y compatible.</p>
+      </article>
+      <article class="step-card">
+        <span class="step-num">05</span>
+        <h3>Guarda la aplicaci&oacute;n</h3>
+        <p>Registra estado, link, notas y score para dar seguimiento.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="landing-section" id="planes">
+    <div class="pricing-band">
+      <div>
+        <h2>Un precio simple para aplicar mejor cada mes</h2>
+        <p>Empieza con una prueba y convierte el producto en una suscripci&oacute;n accesible para personas que est&aacute;n buscando empleo activamente.</p>
+      </div>
+      <div class="price-card">
+        <h3 style="font-family:var(--font-display);font-size:1.25rem">Plan Pro</h3>
+        <div class="price"><strong>$5</strong><span>/mes</span></div>
+        <ul class="price-list">
+          <li><i class="ti ti-check" aria-hidden="true"></i> An&aacute;lisis ATS ilimitado para tus CVs</li>
+          <li><i class="ti ti-check" aria-hidden="true"></i> Adaptaci&oacute;n de CV a vacantes espec&iacute;ficas</li>
+          <li><i class="ti ti-check" aria-hidden="true"></i> Generaci&oacute;n y descarga en formato DOCX</li>
+          <li><i class="ti ti-check" aria-hidden="true"></i> Comparador de vacantes y tracker de aplicaciones</li>
+        </ul>
+        <a class="landing-btn primary" href="#app" style="width:100%">Probar gratis</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section">
+    <div class="tracker-showcase">
+      <div class="tracker-copy">
+        <h2>Tambien ordena tu busqueda laboral</h2>
+        <p>El valor de la suscripci&oacute;n crece cuando el usuario vuelve: puede guardar vacantes, seguir estados, comparar scores y entender qu&eacute; ajustes le acercan a entrevistas reales.</p>
+      </div>
+      <div class="tracker-board">
+        <div class="preview-title">
+          <span>Pipeline de aplicaciones</span>
+          <span>Esta semana</span>
+        </div>
+        <div class="job-row">
+          <div><div class="job-role">Product Analyst</div><div class="job-meta">Score 88% · entrevista</div></div>
+          <span class="mini-status">Alta prioridad</span>
+        </div>
+        <div class="job-row">
+          <div><div class="job-role">Cybersecurity Jr.</div><div class="job-meta">Score 77% · enviado</div></div>
+          <span class="mini-status">Seguimiento</span>
+        </div>
+        <div class="job-row">
+          <div><div class="job-role">Operations Assistant</div><div class="job-meta">Score 69% · mejorar bullets</div></div>
+          <span class="mini-status">Pendiente</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section">
+    <div class="section-heading center">
+      <h2>Preguntas que ayudan a vender mejor</h2>
+      <p>La landing responde las dudas que un usuario tendr&iacute;a antes de pagar una suscripci&oacute;n mensual.</p>
+    </div>
+    <div class="faq-grid">
+      <article class="faq-card">
+        <h3>&iquest;Esto reemplaza a un reclutador?</h3>
+        <p>No. Te ayuda a presentar mejor tu experiencia y a evitar errores de formato antes de postular.</p>
+      </article>
+      <article class="faq-card">
+        <h3>&iquest;Sirve para cualquier industria?</h3>
+        <p>S&iacute;, mientras tengas una vacante y un CV base. El an&aacute;lisis se enfoca en requisitos, keywords y estructura.</p>
+      </article>
+      <article class="faq-card">
+        <h3>&iquest;Por qu&eacute; pagar mensual?</h3>
+        <p>Porque buscar empleo es un proceso continuo: aplicar, ajustar, guardar, medir y mejorar cada semana.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="landing-section final-cta">
+    <div class="section-heading center">
+      <h2>Convierte tu herramienta en un producto que la gente quiera usar cada semana</h2>
+      <p>Prueba el flujo actual, valida qu&eacute; funciones generan m&aacute;s valor y luego conecta pagos para activar el plan Pro.</p>
+      <div class="hero-actions">
+        <a class="landing-btn primary" href="#app">Probar la plataforma</a>
+        <a class="landing-btn secondary" href="#planes">Ver precio</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<section class="app-section" id="app">
+<div class="container app-workspace">
 
   <!-- Header -->
   <header>
@@ -1063,6 +1782,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   </div><!-- /tab-tracker -->
 
 </div><!-- /container -->
+</section><!-- /app-section -->
 
 <script>
   const NOTA_ICON = '<i class="ti ti-bulb" aria-hidden="true"></i>';
@@ -1261,6 +1981,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     try {
       const res = await fetch("/api/v1/extraer-cv", { method: "POST", body: form });
+      if (!(res.headers.get("content-type") || "").includes("application/json"))
+        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
@@ -1308,6 +2030,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     try {
       const res = await fetch("/api/v1/adaptar-docx-original", { method: "POST", body: form });
+      if (!(res.headers.get("content-type") || "").includes("application/json"))
+        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || `Error ${res.status}`);
@@ -1471,6 +2195,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     try {
       const res  = await fetch("/api/v1/analizar-ats", { method: "POST", body: form });
+      if (!(res.headers.get("content-type") || "").includes("application/json"))
+        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
 
@@ -1566,6 +2292,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     form.append("archivo", archivo);
     try {
       const res  = await fetch("/api/v1/parsing-ats", { method: "POST", body: form });
+      if (!(res.headers.get("content-type") || "").includes("application/json"))
+        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
       status.className = "upload-status ok";
@@ -1715,6 +2443,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     form.append("archivo", archivo);
     try {
       const res  = await fetch("/api/v1/mejorar-bullets", { method: "POST", body: form });
+      if (!(res.headers.get("content-type") || "").includes("application/json"))
+        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
       status.className = "upload-status ok";
@@ -1777,6 +2507,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     if (vacante) form.append("vacante_texto", vacante);
     try {
       const res = await fetch("/api/v1/optimizar-cv", { method: "POST", body: form });
+      if (!(res.headers.get("content-type") || "").includes("application/json"))
+        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
 

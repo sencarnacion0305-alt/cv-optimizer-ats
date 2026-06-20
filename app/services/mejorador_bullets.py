@@ -94,6 +94,61 @@ _PLANTILLAS_METRICA = {
                    "achieving ~99% uptime"],
 }
 
+# ── Métricas por SECTOR ───────────────────────────────────────────────────
+# Evita aplicar jerga de IT/ciberseguridad a perfiles de otros sectores
+# (p. ej. no usar "incidentes" para un Marketing Manager).
+_SECTOR_PATRONES = [
+    ("tech",      r"software|desarroll|developer|engineer|ingenier|programm|program|"
+                  r"cyber|ciberseg|security|seguridad inform|\bsoc\b|siem|devops|"
+                  r"cloud|backend|frontend|sysadmin|network|\bredes\b|data scien|"
+                  r"machine learning|\bit\b|infraestructura|\bqa\b|testing"),
+    ("marketing", r"marketing|\bbrand\b|marca|\bseo\b|\bsem\b|social media|"
+                  r"redes sociales|content|contenido|community|campaign|campañ|"
+                  r"publicidad|comunicaci|growth|engagement"),
+    ("ventas",    r"\bsales\b|ventas|account executive|business development|comercial|"
+                  r"\bkam\b|retail|cuota|portafolio"),
+    ("finanzas",  r"finance|financ|account|contab|\baudit|\btax\b|impuesto|tesorer|"
+                  r"presupuesto|\bcfo\b|controller|banca|inversi"),
+    ("rrhh",      r"human resources|recursos humanos|\brrhh\b|talent|talento|recruit|"
+                  r"selecci[oó]n de personal|onboarding|\bhr\b"),
+    ("salud",     r"\bhealth\b|salud|nurse|enfermer|m[eé]dic|cl[ií]nic|patient|"
+                  r"paciente|hospital|farmac"),
+    ("educacion", r"teacher|profesor|docente|education|educaci|maestr|tutor|acad[eé]mic"),
+    ("operaciones", r"operations|operaciones|log[ií]stic|supply chain|"
+                    r"cadena de suministro|almac[eé]n|producci[oó]n|manufactur"),
+]
+
+_PLANTILLAS_SECTOR = {
+    "marketing":   ["increasing engagement by ~30%", "growing reach to ~50K users",
+                    "boosting conversion by ~20%", "managing a ~$50K budget",
+                    "improving ROI by ~25%", "across ~10 campaigns"],
+    "ventas":      ["exceeding quota by ~20%", "closing ~30 deals per quarter",
+                    "growing the portfolio by ~25%", "generating ~$200K in revenue"],
+    "finanzas":    ["managing a ~$1M budget", "reducing costs by ~15%",
+                    "improving accuracy to ~99%", "across ~200 monthly transactions"],
+    "rrhh":        ["reducing time-to-hire by ~30%", "onboarding ~50 new hires",
+                    "improving retention by ~15%", "across ~120 employees"],
+    "salud":       ["serving ~200 patients monthly", "improving outcomes by ~20%",
+                    "maintaining ~98% compliance"],
+    "educacion":   ["teaching ~120 students", "improving pass rates by ~15%",
+                    "across ~6 courses"],
+    "operaciones": ["improving throughput by ~20%", "cutting delivery time by ~25%",
+                    "across ~15 processes", "reducing costs by ~15%"],
+    "general":     ["improving efficiency by ~25%", "saving ~10 hours weekly",
+                    "supporting ~1000 users", "reducing costs by ~15%"],
+}
+
+
+def detectar_sector(texto: str) -> str:
+    """Sector dominante del CV, para elegir métricas apropiadas al perfil."""
+    low = texto.lower()
+    mejor, maximo = "general", 0
+    for sector, patron in _SECTOR_PATRONES:
+        n = len(re.findall(patron, low))
+        if n > maximo:
+            mejor, maximo = sector, n
+    return mejor
+
 
 def _categoria_metrica(texto_low: str) -> str:
     for cat, patron in _CATEGORIAS_METRICA:
@@ -102,14 +157,19 @@ def _categoria_metrica(texto_low: str) -> str:
     return "default"
 
 
-def sufijo_metrica(bullet: str, contadores: Dict[str, int]) -> str:
+def sufijo_metrica(bullet: str, contadores: Dict[str, int], sector: str = "tech") -> str:
     """
-    Devuelve un sufijo de impacto cuantificado, rotando entre variantes y
-    evitando las que repiten palabras ya presentes en el bullet.
+    Devuelve un sufijo de impacto cuantificado APROPIADO AL SECTOR del candidato,
+    rotando entre variantes y evitando las que repiten palabras del bullet.
+    Para sectores no técnicos no se usa jerga de IT/ciberseguridad.
     """
     low = bullet.lower()
-    cat = _categoria_metrica(low)
-    opciones = _PLANTILLAS_METRICA.get(cat, _PLANTILLAS_METRICA["default"])
+    if sector == "tech":
+        cat = _categoria_metrica(low)
+        opciones = _PLANTILLAS_METRICA.get(cat, _PLANTILLAS_METRICA["default"])
+    else:
+        cat = sector
+        opciones = _PLANTILLAS_SECTOR.get(sector, _PLANTILLAS_SECTOR["general"])
     i = contadores.get(cat, 0)
     for k in range(len(opciones)):
         cand = opciones[(i + k) % len(opciones)]
@@ -121,10 +181,11 @@ def sufijo_metrica(bullet: str, contadores: Dict[str, int]) -> str:
     return opciones[i % len(opciones)]
 
 
-def agregar_metrica_a_bullet(bullet: str, contadores: Dict[str, int]) -> str:
+def agregar_metrica_a_bullet(bullet: str, contadores: Dict[str, int],
+                             sector: str = "tech") -> str:
     """Agrega una metrica cuantificada al final del bullet (si no tiene ya numeros)."""
     base = bullet.rstrip().rstrip(".")
-    return base + ", " + sufijo_metrica(bullet, contadores) + "."
+    return base + ", " + sufijo_metrica(bullet, contadores, sector) + "."
 
 
 def tiene_metrica(texto: str) -> bool:
@@ -200,6 +261,7 @@ def _es_bullet_de_logro(linea: str) -> bool:
 
 def mejorar_bullets(cv_texto: str) -> Dict:
     lineas = [l.strip() for l in cv_texto.splitlines() if l.strip()]
+    sector = detectar_sector(cv_texto)
 
     mejoras: List[Dict] = []
     contadores: Dict[str, int] = {}
@@ -221,9 +283,9 @@ def mejorar_bullets(cv_texto: str) -> Dict:
                 mejorado = reescrito
                 tipos.append("verbo")
 
-        # 2. Agregar metrica si no tiene numeros
+        # 2. Agregar metrica si no tiene numeros (apropiada al sector)
         if not tiene_metrica(mejorado):
-            mejorado = agregar_metrica_a_bullet(mejorado, contadores)
+            mejorado = agregar_metrica_a_bullet(mejorado, contadores, sector)
             tipos.append("metrica")
 
         if tipos and mejorado.strip() != linea.strip():

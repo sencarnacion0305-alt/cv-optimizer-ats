@@ -28,7 +28,7 @@ from app.services.adaptador import (
 from app.services.adaptador_docx import _construir_resumen_completo, _formato_keyword
 from app.services.ats_checker import ACRONIMOS_LARGOS
 from app.services.mejorador_bullets import (
-    _es_bullet_debil, _reescribir_bullet, tiene_metrica, sufijo_metrica,
+    _es_bullet_debil, _reescribir_bullet, tiene_metrica, sufijo_metrica, detectar_sector,
 )
 from app.services.parser_ats import (
     EMAIL_RE, PHONE_RE, LINKEDIN_RE, UBIC_RE, PRESENTE, _detectar_nombre,
@@ -326,6 +326,7 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
 
     # 1. Bullets de experiencia: verbos de accion + metricas de impacto
     n_verb = n_met = 0
+    sector = detectar_sector(_texto_de_mapa(mapa))
     contadores: Dict[str, int] = {}
     for job in mapa["experiencia"]:
         nuevos = []
@@ -336,7 +337,7 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
                     b = rb
                     n_verb += 1
             if len(b) >= 40 and not tiene_metrica(b):
-                b = b.rstrip().rstrip(".") + ", " + sufijo_metrica(b, contadores) + "."
+                b = b.rstrip().rstrip(".") + ", " + sufijo_metrica(b, contadores, sector) + "."
                 n_met += 1
             nuevos.append(b)
         job["bullets"] = nuevos

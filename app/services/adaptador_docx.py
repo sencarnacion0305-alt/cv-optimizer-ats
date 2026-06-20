@@ -16,7 +16,7 @@ from app.services.adaptador import (
 from app.services.ats_checker import (
     EMOJI_RE, ACRONIMOS_LARGOS, SIMBOLOS_RAROS, _empieza_con_verbo_accion,
 )
-from app.services.mejorador_bullets import sufijo_metrica, tiene_metrica
+from app.services.mejorador_bullets import sufijo_metrica, tiene_metrica, detectar_sector
 
 
 # ---------------------------------------------------------------------------
@@ -354,6 +354,7 @@ def _agregar_metricas_doc(doc) -> int:
     Agrega una metrica de impacto a los bullets de logro sin numeros,
     SOLO dentro de la seccion de experiencia laboral (evita certs, educacion, skills).
     """
+    sector = detectar_sector("\n".join(p.text for p in _todos_los_parrafos_docx(doc)))
     contadores: dict = {}
     cambios = 0
     en_experiencia = False
@@ -375,7 +376,7 @@ def _agregar_metricas_doc(doc) -> int:
         if _es_heading(p) or not _empieza_con_verbo_accion(t) or tiene_metrica(t):
             continue
 
-        _append_a_parrafo(p, ", " + sufijo_metrica(t, contadores) + ".")
+        _append_a_parrafo(p, ", " + sufijo_metrica(t, contadores, sector) + ".")
         cambios += 1
     return cambios
 
