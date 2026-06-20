@@ -1534,6 +1534,14 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
           <div class="notas-list" id="notas-list"></div>
         </div>
 
+        <details id="senales-riesgo" class="card chk-cat" style="display:none">
+          <summary>
+            <span><i class="ti ti-alert-triangle" style="color:var(--orange)" aria-hidden="true"></i> Señales que pueden preocupar al reclutador</span>
+            <span id="senales-count" class="chk-cat-pts"></span>
+          </summary>
+          <div id="senales-lista" style="margin-top:.8rem"></div>
+        </details>
+
       </div>
     </div>
 
@@ -2012,6 +2020,55 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     cont.style.display = "block";
   }
 
+  // ════════════ Señales de riesgo (Bloque 7) ════════════
+  function detectarSenalesRiesgo(cvText, d) {
+    const s = [];
+    if (d && d.score_desglose && d.score_desglose.dimensiones) {
+      const cargo = d.score_desglose.dimensiones.find(x => x.nombre === "Cargo objetivo");
+      if (cargo && cargo.puntos < 5)
+        s.push({ icono: "ti-target-arrow",
+          mensaje: "El cargo objetivo de la vacante casi no aparece en tu CV.",
+          accion: "Añade el título exacto del puesto en tu titular o resumen." });
+    }
+    const weak = checkWeakPhrases(cvText);
+    if (weak.length >= 3)
+      s.push({ icono: "ti-pencil",
+        mensaje: `${weak.length} frases genéricas detectadas. Los reclutadores buscan logros concretos, no responsabilidades.`,
+        accion: 'Reemplaza "responsable de X" por "Lideré X logrando Y resultado".' });
+    const len = checkLength(cvText);
+    if (len.status !== "ok")
+      s.push({ icono: "ti-ruler-2", mensaje: len.msg,
+        accion: len.words > 900 ? "Elimina información irrelevante de hace más de 10 años."
+                                : "Expande las descripciones de tus roles con logros y contexto." });
+    const dt = checkDates(cvText);
+    if (dt.vagueFound.length)
+      s.push({ icono: "ti-calendar", mensaje: `${dt.vagueFound.length} fecha(s) ambigua(s) o ausente(s).`,
+        accion: 'Usa el formato "Mes AAAA - Mes AAAA" en todas las posiciones.' });
+    const c = checkContactInfo(cvText);
+    if (!c.email || !c.phone) {
+      const faltan = [!c.email ? "email" : null, !c.phone ? "teléfono" : null].filter(Boolean).join(" y ");
+      s.push({ icono: "ti-phone", mensaje: `Faltan datos de contacto: ${faltan}.`,
+        accion: "Añade email y teléfono en la cabecera del CV." });
+    }
+    return s;
+  }
+
+  function renderSenales(cvText, d) {
+    const box = document.getElementById("senales-riesgo");
+    if (!box) return;
+    const senales = detectarSenalesRiesgo(cvText, d);
+    if (!senales.length) { box.style.display = "none"; return; }
+    document.getElementById("senales-count").textContent = senales.length;
+    document.getElementById("senales-lista").innerHTML = senales.map(s =>
+      `<div class="ats-check warning" style="margin-bottom:.5rem">
+         <span class="ico"><i class="ti ${s.icono}" aria-hidden="true"></i></span>
+         <div class="body"><div class="t" style="font-size:.86rem">${escapeHtml(s.mensaje)}</div>
+         <div class="d"><strong>Acción:</strong> ${escapeHtml(s.accion)}</div></div>
+       </div>`).join("");
+    box.style.display = "block";
+    box.open = true;
+  }
+
   function renderResultados(d) {
     // ── Score circular ──────────────────────────────────────────
     const score = d.score_match;
@@ -2081,6 +2138,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     // ── Diagnóstico de contenido (FEAT-01..06, en el cliente) ───
     renderDiagnostico((document.getElementById("cv") || {}).value || "");
+
+    // ── Señales de riesgo (Bloque 7) ────────────────────────────
+    renderSenales((document.getElementById("cv") || {}).value || "", d);
 
     // ── CV adaptado ──────────────────────────────────────────────
     document.getElementById("cv-resumen").innerHTML =
