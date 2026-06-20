@@ -1448,6 +1448,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
           <div id="job-title-box" class="job-title-box" style="display:none"></div>
 
+          <div id="score-desglose" style="display:none;margin-top:1.1rem;text-align:left"></div>
+
           <div class="kw-section">
             <h4><i class="ti ti-circle-check" aria-hidden="true"></i> Keywords cubiertas</h4>
             <div class="chips" id="chips-cubiertas"></div>
@@ -1851,6 +1853,29 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     if      (score >= 70) { desc.textContent = "Excelente compatibilidad"; desc.style.color = "#16A34A"; }
     else if (score >= 40) { desc.textContent = "Compatibilidad media";     desc.style.color = "#D97706"; }
     else                  { desc.textContent = "Baja compatibilidad";      desc.style.color = "#DC2626"; }
+
+    // ── Desglose del score (5 dimensiones) ──────────────────────
+    const desg = document.getElementById("score-desglose");
+    if (d.score_desglose && d.score_desglose.dimensiones) {
+      let html = `<div class="section-title" style="margin-bottom:.5rem"><i class="ti ti-chart-bar" aria-hidden="true"></i> Desglose del score</div>`;
+      d.score_desglose.dimensiones.forEach(dim => {
+        const pct = dim.max ? Math.round(dim.puntos / dim.max * 100) : 0;
+        const c = pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626";
+        const titulo = dim.checks.map(ch =>
+          `${ch.ok ? "✓" : "·"} ${ch.label} (${ch.pts}/${ch.max})`).join("\n");
+        html += `<div class="ats-cat" style="margin-top:.6rem" title="${escapeHtml(titulo)}">
+            <div class="ats-cat-header" style="margin-bottom:.3rem">
+              <span class="name" style="font-size:.84rem">${escapeHtml(dim.nombre)}</span>
+              <span class="pts">${dim.puntos}/${dim.max}</span>
+            </div>
+            <div class="ats-cat-bar"><span style="width:${pct}%;background:${c}"></span></div>
+          </div>`;
+      });
+      desg.innerHTML = html;
+      desg.style.display = "block";
+    } else {
+      desg.style.display = "none";
+    }
 
     // ── Job title match ─────────────────────────────────────────
     const jt = document.getElementById("job-title-box");

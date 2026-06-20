@@ -822,18 +822,25 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
     cv      = request.cv_texto
     vacante = request.vacante_texto
 
+    from app.services.scoring import calcular_score_compuesto
+
     # Limitar a las 30 keywords más relevantes para que el score sea justo
     kw_vacante             = _keywords_de(vacante)[:30]
     cubiertas, sugeridas   = _analizar_cobertura(kw_vacante, cv)
-    score                  = _calcular_score(cubiertas, len(kw_vacante))
-    resumen                = _mejor_resumen(cv, kw_vacante)
-    experiencias           = _extraer_experiencias(cv)
-    habilidades            = _extraer_habilidades(cv, kw_vacante)
-    notas                  = _generar_notas(cubiertas, sugeridas, score, cv)
 
     # Job title match
     titulo_vacante = _detectar_titulo_vacante(vacante)
     titulo_cubierto = _titulo_en_cv(titulo_vacante, cv)
+
+    # Score compuesto de 5 dimensiones (keywords, formato, estructura, contenido, cargo)
+    desglose = calcular_score_compuesto(cv, vacante, cubiertas, sugeridas,
+                                        kw_vacante, titulo_vacante or "")
+    score = desglose["total"]
+
+    resumen                = _mejor_resumen(cv, kw_vacante)
+    experiencias           = _extraer_experiencias(cv)
+    habilidades            = _extraer_habilidades(cv, kw_vacante)
+    notas                  = _generar_notas(cubiertas, sugeridas, score, cv)
     if titulo_vacante and not titulo_cubierto:
         notas.insert(0, (
             f"El título del puesto «{titulo_vacante}» no aparece en tu CV. "
@@ -853,4 +860,5 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
         notas_para_usuario=notas,
         titulo_vacante=titulo_vacante or None,
         titulo_cubierto=titulo_cubierto,
+        score_desglose=desglose,
     )

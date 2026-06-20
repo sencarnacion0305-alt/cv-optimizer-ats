@@ -27,3 +27,4 @@ class AdaptarCVResponse(BaseModel):
     notas_para_usuario: List[str]
     titulo_vacante: Optional[str] = None
     titulo_cubierto: bool = True
+    score_desglose: Optional[dict] = None  # 5 dimensiones: {total, dimensiones:[...]}
