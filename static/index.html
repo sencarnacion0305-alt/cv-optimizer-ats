@@ -676,6 +676,25 @@
       padding: .3rem 0; line-height: 1.4; }
     .chk-item i { font-size: 1.05rem; flex-shrink: 0; margin-top: .05rem; }
 
+    /* ── UX polish (Bloque 5) ──────────────────────────────────── */
+    .word-counter { font-size: .72rem; color: var(--muted); margin-top: .3rem;
+      text-align: right; min-height: 1em; }
+    .ats-dropzone.drag-active { border-color: var(--accent); background: #EFF6FF; }
+    .ats-dropzone.cargando { opacity: .6; cursor: not-allowed; pointer-events: none; }
+    mark.kw-found   { background: #DCFCE7; color: #15803D; padding: 0 .18em; border-radius: 3px; }
+    mark.kw-missing { background: #FEF3C7; color: #B45309; padding: 0 .18em; border-radius: 3px; }
+    .info-tip { position: relative; display: inline-flex; cursor: help; color: var(--muted);
+      margin-left: .35rem; vertical-align: middle; }
+    .info-tip .tip-box { display: none; position: absolute; bottom: 135%; left: 50%;
+      transform: translateX(-50%); width: 230px; background: var(--text); color: #fff;
+      font-size: .74rem; line-height: 1.45; padding: .6rem .7rem; border-radius: 8px;
+      z-index: 30; font-weight: 400; text-transform: none; letter-spacing: normal;
+      box-shadow: 0 4px 16px rgba(15,23,42,.2); }
+    .info-tip:hover .tip-box, .info-tip:focus .tip-box { display: block; }
+    .spinner-sm { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border2);
+      border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: -2px; margin-right: .4rem; }
+
     /* Landing page */
     body {
       padding: 0;
@@ -1429,6 +1448,7 @@
 
 Ejemplo:
 Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabajé en Empresa XYZ construyendo APIs REST. Manejo Docker, Git y PostgreSQL..."></textarea>
+      <div class="word-counter" id="cv-counter"></div>
       <div class="upload-row">
         <label class="btn-upload" for="archivo-cv"><i class="ti ti-paperclip" aria-hidden="true"></i> Subir PDF o DOCX</label>
         <input type="file" id="archivo-cv" accept=".pdf,.docx,.doc" style="display:none" onchange="subirArchivo(this)" />
@@ -1438,8 +1458,10 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     <div class="card">
       <label for="vacante"><i class="ti ti-building" aria-hidden="true"></i> Descripción de la vacante</label>
       <textarea id="vacante" placeholder="Pega aquí la descripción completa del puesto (incluyendo beneficios, sobre la empresa, etc.). El botón Limpiar extrae solo lo importante."></textarea>
+      <div class="word-counter" id="vacante-counter"></div>
       <div class="upload-row">
         <button class="btn-upload" onclick="limpiarVacante()"><i class="ti ti-eraser" aria-hidden="true"></i> Limpiar vacante</button>
+        <button class="btn-upload" id="btn-restaurar" style="display:none" onclick="restaurarVacante()"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Restaurar original</button>
         <span class="upload-status" id="limpiar-status">elimina beneficios y ruido</span>
       </div>
     </div>
@@ -1460,7 +1482,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <!-- Columna izquierda: score + keywords -->
       <div>
         <div class="score-card">
-          <div class="score-label">Compatibilidad ATS</div>
+          <div class="score-label">Compatibilidad ATS<span class="info-tip" tabindex="0"><i class="ti ti-info-circle" aria-hidden="true"></i><span class="tip-box">El score mide la compatibilidad de tu CV con esta vacante específica. Un score de 75+ se considera buena compatibilidad por reclutadores y herramientas ATS.</span></span></div>
           <div class="score-circle-wrap">
             <svg class="score-circle" viewBox="0 0 120 120">
               <circle class="track" cx="60" cy="60" r="54" />
@@ -1492,7 +1514,10 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <div class="right-col">
 
         <div class="card cv-section">
-          <div class="card-title"><i class="ti ti-file-pencil" aria-hidden="true"></i> CV Adaptado</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:.9rem">
+            <div class="card-title" style="margin-bottom:0"><i class="ti ti-file-pencil" aria-hidden="true"></i> CV Adaptado</div>
+            <button class="btn-action btn-copy" onclick="analizar()" title="Edita el CV o la vacante arriba y vuelve a analizar"><i class="ti ti-refresh" aria-hidden="true"></i> Re-analizar</button>
+          </div>
           <div class="cv-resumen" id="cv-resumen"></div>
           <div class="cv-subsection">
             <h4>Experiencia relevante</h4>
@@ -1822,6 +1847,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <button class="trk-filter" data-f="entrevista" onclick="trkFiltrar('entrevista',this)">Entrevista</button>
       <button class="trk-filter" data-f="oferta" onclick="trkFiltrar('oferta',this)">Oferta</button>
       <button class="trk-filter" data-f="rechazado" onclick="trkFiltrar('rechazado',this)">Rechazado</button>
+      <button class="trk-filter" style="margin-left:auto" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> Exportar CSV</button>
     </div>
 
     <div id="trk-lista"></div>
@@ -2057,7 +2083,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     renderDiagnostico((document.getElementById("cv") || {}).value || "");
 
     // ── CV adaptado ──────────────────────────────────────────────
-    document.getElementById("cv-resumen").textContent = d.cv_adaptado.resumen;
+    document.getElementById("cv-resumen").innerHTML =
+      resaltarKeywords(d.cv_adaptado.resumen, d.keywords_cubiertas, d.keywords_sugeridas);
 
     renderLista("cv-experiencia", d.cv_adaptado.experiencia);
     renderLista("cv-habilidades", d.cv_adaptado.habilidades);
@@ -2114,6 +2141,17 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     requestAnimationFrame(tick);
   }
 
+  let _vacanteOriginal = null;
+  function restaurarVacante() {
+    if (_vacanteOriginal === null) return;
+    document.getElementById("vacante").value = _vacanteOriginal;
+    _vacanteOriginal = null;
+    document.getElementById("btn-restaurar").style.display = "none";
+    const st = document.getElementById("limpiar-status");
+    st.className = "upload-status"; st.textContent = "Original restaurado";
+    actualizarContador("vacante", "vacante-counter");
+  }
+
   async function limpiarVacante() {
     const textarea = document.getElementById("vacante");
     const status   = document.getElementById("limpiar-status");
@@ -2125,8 +2163,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       return;
     }
 
+    _vacanteOriginal = textarea.value;
     status.className = "upload-status";
-    status.textContent = "⏳ Limpiando…";
+    status.innerHTML = '<span class="spinner-sm"></span>Limpiando…';
 
     try {
       const res = await fetch("/api/v1/limpiar-vacante", {
@@ -2142,6 +2181,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       const reduccion = Math.round((1 - limpio / original) * 100);
 
       textarea.value = data.texto;
+      document.getElementById("btn-restaurar").style.display = "inline-flex";
+      actualizarContador("vacante", "vacante-counter");
       status.className = "upload-status ok";
       status.textContent = reduccion > 0
         ? `✅ Listo — se eliminó el ${reduccion}% de ruido`
@@ -2158,7 +2199,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     const status = document.getElementById("upload-status");
     status.className = "upload-status";
-    status.textContent = "⏳ Leyendo archivo…";
+    status.innerHTML = '<span class="spinner-sm"></span>Leyendo archivo…';
 
     const form = new FormData();
     form.append("archivo", archivo);
@@ -2206,7 +2247,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     }
 
     status.className = "upload-status";
-    status.textContent = "⏳ Adaptando...";
+    status.innerHTML = '<span class="spinner-sm"></span>Adaptando…';
 
     const form = new FormData();
     form.append("archivo", input.files[0]);
@@ -2260,7 +2301,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       return;
     }
 
-    status.textContent = "⏳ Generando CV adaptado…";
+    status.innerHTML = '<span class="spinner-sm"></span>Generando CV adaptado…';
     section.style.display = "block";
     section.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -2322,7 +2363,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     }
 
     const prevStatus = status.textContent;
-    status.textContent = `⏳ Generando ${formato.toUpperCase()}…`;
+    status.innerHTML = `<span class="spinner-sm"></span>Generando ${formato.toUpperCase()}…`;
     status.style.color = "";
 
     try {
@@ -2491,7 +2532,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const resultado = document.getElementById("ats-resultado");
 
     status.className = "upload-status";
-    status.textContent = "⏳ Analizando " + archivo.name + "…";
+    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + archivo.name + "…";
 
     const form = new FormData();
     form.append("archivo", archivo);
@@ -2589,7 +2630,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const status    = document.getElementById("parsing-file-status");
     const resultado = document.getElementById("parsing-resultado");
     status.className = "upload-status";
-    status.textContent = "⏳ Analizando " + archivo.name + "…";
+    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + archivo.name + "…";
 
     const form = new FormData();
     form.append("archivo", archivo);
@@ -2690,7 +2731,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       return;
     }
     status.className = "upload-status";
-    status.textContent = "⏳ Comparando…";
+    status.innerHTML = '<span class="spinner-sm"></span>Comparando…';
 
     try {
       const res = await fetch("/api/v1/comparar-vacantes", {
@@ -2740,7 +2781,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const status    = document.getElementById("bullets-file-status");
     const resultado = document.getElementById("bullets-resultado");
     status.className = "upload-status";
-    status.textContent = "⏳ Analizando " + archivo.name + "…";
+    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + archivo.name + "…";
 
     const form = new FormData();
     form.append("archivo", archivo);
@@ -2803,7 +2844,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const resultado = document.getElementById("plantilla-resultado");
     const vacante = document.getElementById("optimizador-vacante").value.trim();
     status.className = "upload-status";
-    status.textContent = "⏳ Optimizando " + archivo.name + "…";
+    status.innerHTML = '<span class="spinner-sm"></span>Optimizando ' + archivo.name + "…";
 
     const form = new FormData();
     form.append("archivo", archivo);
@@ -2950,6 +2991,79 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       lista.appendChild(div);
     });
   }
+
+  // ════════════ UX polish (Bloque 5) ════════════
+  function actualizarContador(textareaId, counterId) {
+    const ta = document.getElementById(textareaId);
+    const c  = document.getElementById(counterId);
+    if (!ta || !c) return;
+    const words = ta.value.trim().split(/\s+/).filter(Boolean).length;
+    c.textContent = words > 0 ? `${words} palabras · ~${(words / 400).toFixed(1)} pág` : "";
+  }
+
+  function exportarCSV() {
+    const apps = (typeof trkCargar === "function") ? trkCargar() : [];
+    if (!apps.length) { alert("No hay aplicaciones que exportar todavía."); return; }
+    const headers = ["Puesto", "Empresa", "Estado", "Score ATS", "Fecha", "Link", "Notas"];
+    const rows = apps.map(a => [
+      a.puesto, a.empresa, (TRK_ESTADOS && TRK_ESTADOS[a.estado]) || a.estado, a.score,
+      a.fecha ? new Date(a.fecha).toLocaleDateString("es") : "", a.link, a.notas,
+    ]);
+    const esc = c => `"${String(c == null ? "" : c).replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map(r => r.map(esc).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "mis-aplicaciones.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function resaltarKeywords(texto, cubiertas, sugeridas) {
+    let html = escapeHtml(texto || "");
+    const marcar = (lista, cls) => (lista || []).forEach(kw => {
+      if (!kw || kw.length < 2) return;
+      const re = new RegExp("(?<![\\w-])(" + kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?![\\w-])", "gi");
+      html = html.replace(re, m => m.includes("<") ? m : `<mark class="${cls}">${m}</mark>`);
+    });
+    marcar(cubiertas, "kw-found");
+    marcar((sugeridas || []).slice(0, 6), "kw-missing");
+    return html;
+  }
+
+  function iniciarCargaArchivo(statusEl, dropEl, nombre) {
+    const fases = ["Extrayendo texto…", "Analizando contenido…", "Generando resultados…"];
+    let i = 0;
+    statusEl.className = "upload-status";
+    statusEl.innerHTML = `<span class="spinner-sm"></span>${fases[0]}`;
+    if (dropEl) dropEl.classList.add("cargando");
+    const timer = setInterval(() => {
+      i = (i + 1) % fases.length;
+      statusEl.innerHTML = `<span class="spinner-sm"></span>${fases[i]}`;
+    }, 1100);
+    return () => { clearInterval(timer); if (dropEl) dropEl.classList.remove("cargando"); };
+  }
+
+  function _wireUX() {
+    [["cv", "cv-counter"], ["vacante", "vacante-counter"]].forEach(([t, c]) => {
+      const ta = document.getElementById(t);
+      if (ta) { ta.addEventListener("input", () => actualizarContador(t, c)); actualizarContador(t, c); }
+    });
+    document.querySelectorAll(".ats-dropzone").forEach(zone => {
+      const input = document.getElementById(zone.getAttribute("for"));
+      if (!input) return;
+      zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag-active"); });
+      zone.addEventListener("dragleave", () => zone.classList.remove("drag-active"));
+      zone.addEventListener("drop", e => {
+        e.preventDefault(); zone.classList.remove("drag-active");
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+          input.dispatchEvent(new Event("change"));
+        }
+      });
+    });
+  }
+  _wireUX();
 
   function mostrarError(msg) {
     const el = document.getElementById("error-box");
