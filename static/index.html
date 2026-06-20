@@ -653,6 +653,29 @@
     .trk-filter.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .trk-empty { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: .9rem; }
 
+    /* ── Checklist ATS ─────────────────────────────────────────── */
+    .chk-score { text-align: center; padding: 1.25rem; }
+    .chk-score .n { font-family: var(--font-display); font-size: 2.6rem; font-weight: 600; line-height: 1; }
+    .chk-score .l { color: var(--muted); font-size: .85rem; margin-top: .25rem; }
+    .chk-cat {
+      border: 1px solid var(--border); border-radius: 10px; padding: .7rem 1rem;
+      margin-bottom: .7rem; background: var(--surface); box-shadow: var(--shadow);
+    }
+    .chk-cat > summary {
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--font-display); font-weight: 600; font-size: .95rem; list-style: none;
+    }
+    .chk-cat > summary::-webkit-details-marker { display: none; }
+    .chk-cat > summary::after {
+      content: "▾"; color: var(--muted); transition: transform .2s; margin-left: .5rem;
+    }
+    .chk-cat[open] > summary::after { transform: rotate(180deg); }
+    .chk-cat-pts { font-size: .82rem; color: var(--muted); background: var(--surface2);
+      padding: .15rem .6rem; border-radius: 999px; font-family: var(--font-body); }
+    .chk-item { display: flex; align-items: flex-start; gap: .55rem; font-size: .86rem;
+      padding: .3rem 0; line-height: 1.4; }
+    .chk-item i { font-size: 1.05rem; flex-shrink: 0; margin-top: .05rem; }
+
     /* Landing page */
     body {
       padding: 0;
@@ -1387,6 +1410,7 @@
   <div class="tabs">
     <button class="tab-btn active" id="tabbtn-adaptar" onclick="cambiarTab('adaptar')"><i class="ti ti-target-arrow" aria-hidden="true"></i> Adaptar a vacante</button>
     <button class="tab-btn" id="tabbtn-ats" onclick="cambiarTab('ats')"><i class="ti ti-clipboard-check" aria-hidden="true"></i> Análisis ATS</button>
+    <button class="tab-btn" id="tabbtn-checklist" onclick="cambiarTab('checklist')"><i class="ti ti-checklist" aria-hidden="true"></i> Checklist ATS</button>
     <button class="tab-btn" id="tabbtn-parsing" onclick="cambiarTab('parsing')"><i class="ti ti-eye" aria-hidden="true"></i> Vista del reclutador</button>
     <button class="tab-btn" id="tabbtn-comparar" onclick="cambiarTab('comparar')"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Comparar vacantes</button>
     <button class="tab-btn" id="tabbtn-bullets" onclick="cambiarTab('bullets')"><i class="ti ti-pencil" aria-hidden="true"></i> Mejorar bullets</button>
@@ -1562,6 +1586,25 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     </div>
 
   </div><!-- /tab-ats -->
+
+  <!-- ════════════ TAB: Checklist ATS (20 checks, cliente) ════════════ -->
+  <div id="tab-checklist" class="tab-content">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-checklist" aria-hidden="true"></i> Checklist ATS — 20 verificaciones</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1rem">
+        Revisión instantánea de tu CV contra 20 buenas prácticas ATS, en 4 categorías.
+        Se ejecuta en tu navegador (no se sube nada). Si ya pegaste tu CV en
+        «Adaptar a vacante», lo tomamos de ahí automáticamente.
+      </p>
+      <textarea id="checklist-cv" class="vac-input" style="min-height:150px"
+        placeholder="Pega aquí tu CV en texto plano…"></textarea>
+      <div style="margin-top:.7rem">
+        <button class="btn-action btn-generar" onclick="runChecklist()"><i class="ti ti-player-play" aria-hidden="true"></i> Analizar mi CV</button>
+        <span id="checklist-status" class="upload-status" style="margin-left:.5rem"></span>
+      </div>
+    </div>
+    <div id="checklist-resultado" style="display:none;margin-top:1.25rem"></div>
+  </div><!-- /tab-checklist -->
 
   <!-- ════════════ TAB: Vista del reclutador (Parsing ATS) ════════════ -->
   <div id="tab-parsing" class="tab-content">
@@ -2314,11 +2357,130 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   }
 
   // ── Tabs ──────────────────────────────────────────────────────
+  // ════════════ Checklist ATS — 20 checks (cliente) ════════════
+  function runChecklist() {
+    const cv = (document.getElementById("checklist-cv").value.trim())
+             || (document.getElementById("cv") ? document.getElementById("cv").value.trim() : "");
+    const status = document.getElementById("checklist-status");
+    const cont = document.getElementById("checklist-resultado");
+    if (!cv || cv.length < 30) {
+      status.className = "upload-status err";
+      status.textContent = "Pega tu CV (o complétalo en «Adaptar a vacante») para analizarlo.";
+      cont.style.display = "none";
+      return;
+    }
+    status.textContent = "";
+
+    const lower = cv.toLowerCase();
+    const lineas = cv.split("\n").map(l => l.trim()).filter(Boolean);
+    const bullets = lineas.filter(l => l.length > 20);
+
+    const c = checkContactInfo(cv);
+    const dt = checkDates(cv);
+    const len = checkLength(cv);
+    const weak = checkWeakPhrases(cv);
+    const rep = checkRepetition(cv);
+    const stuffing = checkKeywordStuffing(cv);
+
+    const tieneUbic = /(location|ubicaci[oó]n|address|direcci[oó]n)\s*[:\-]/i.test(cv)
+      || /\b(remote|remoto|madrid|barcelona|m[eé]xico|bogot[aá]|lima|santiago|buenos aires|new york|london|miami)\b/i.test(cv);
+    const secResumen = /\b(professional\s+summary|summary|perfil|resumen|objetivo|about\s+me)\b/i.test(cv);
+    const secExp = /\b(work\s+experience|experience|experiencia|employment|trayectoria|historial\s+laboral)\b/i.test(cv);
+    const secEdu = /\b(education|educaci[oó]n|formaci[oó]n|academic)\b/i.test(cv);
+    const secSkills = /\b(technical\s+skills?|skills?|habilidades|competencias?|conocimientos)\b/i.test(cv);
+    const idxRes = lower.search(/\b(summary|resumen|perfil|profile|objetivo)\b/);
+    const idxExp = lower.search(/\b(experience|experiencia|employment)\b/);
+    const ordenOk = idxRes === -1 || idxExp === -1 || idxRes < idxExp;
+
+    const sinTabla = !/[│┃]|[─━]{3,}|\t{2,}|\|\s*\S.*\|/.test(cv);
+    const sinChars = !/[‘’“”•▪●—\u{1F300}-\u{1FAFF}]/u.test(cv);
+    const tieneVinetas = /^[\s]*[-•*–·]\s+/m.test(cv);
+    const conMetrica = lineas.filter(l => /\d+\s*%|\$\s*\d|\b\d[\d.,]*\s*\+|\bx\s?\d|\d{2,}/.test(l)).length;
+    const verboRe = /^[\s\-•*–·]*(led|managed|built|created|designed|developed|implemented|reduced|increased|improved|launched|delivered|drove|optimized|achieved|resolved|analyzed|coordinated|automated|spearheaded|streamlined|lider|gestion|desarroll|implement|dise|reduj|aument|mejor|cre|coordin|logr|dirig|ejecut|analic)/i;
+    const conVerbo = bullets.filter(l => verboRe.test(l)).length;
+    const ratioVerbo = bullets.length ? conVerbo / bullets.length : 0;
+
+    const ok = "ok", warn = "warning", err = "error";
+    const categorias = [
+      { nombre: "Información de contacto", checks: [
+        { label: "Email presente", estado: c.email ? ok : err },
+        { label: "Teléfono presente", estado: c.phone ? ok : err },
+        { label: "Perfil de LinkedIn", estado: c.linkedin ? ok : warn },
+        { label: "Nombre al inicio del CV", estado: c.name ? ok : warn },
+        { label: "Ubicación / ciudad indicada", estado: tieneUbic ? ok : warn },
+      ]},
+      { nombre: "Estructura y secciones", checks: [
+        { label: "Sección Resumen / Perfil", estado: secResumen ? ok : warn },
+        { label: "Sección Experiencia", estado: secExp ? ok : err },
+        { label: "Sección Educación", estado: secEdu ? ok : warn },
+        { label: "Sección Habilidades", estado: secSkills ? ok : warn },
+        { label: "Orden lógico (resumen → experiencia)", estado: ordenOk ? ok : warn },
+      ]},
+      { nombre: "Formato ATS", checks: [
+        { label: `Longitud adecuada (${len.words} palabras)`, estado: len.status === "ok" ? ok : warn },
+        { label: "Fechas en formato estándar (Mes AAAA)",
+          estado: dt.goodDatesCount > 0 ? (dt.vagueFound.length ? warn : ok) : warn },
+        { label: "Sin tablas ni columnas", estado: sinTabla ? ok : err },
+        { label: "Sin caracteres especiales problemáticos", estado: sinChars ? ok : warn },
+        { label: "Usa viñetas estándar (- •)", estado: tieneVinetas ? ok : warn },
+      ]},
+      { nombre: "Calidad de contenido", checks: [
+        { label: `Logros con métricas numéricas (${conMetrica})`,
+          estado: conMetrica >= 2 ? ok : (conMetrica === 1 ? warn : err) },
+        { label: `Verbos de acción al inicio (${conVerbo}/${bullets.length})`,
+          estado: ratioVerbo >= 0.4 ? ok : warn },
+        { label: weak.length ? `Frases débiles de relleno (${weak.length})` : "Sin frases débiles de relleno",
+          estado: weak.length === 0 ? ok : warn },
+        { label: rep.length ? `Palabras muy repetidas (${rep.slice(0, 3).join(", ")})` : "Sin palabras muy repetidas",
+          estado: rep.length === 0 ? ok : warn },
+        { label: "Sin keyword stuffing", estado: stuffing ? err : ok },
+      ]},
+    ];
+    renderChecklist(categorias);
+    cont.style.display = "block";
+    cont.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderChecklist(categorias) {
+    const PTS = { ok: 5, warning: 2, error: 0 };
+    const COL = { ok: "var(--green)", warning: "var(--orange)", error: "var(--red)" };
+    const ICO = { ok: "circle-check", warning: "alert-triangle", error: "circle-x" };
+    let total = 0;
+    let cats = "";
+    categorias.forEach(cat => {
+      const cp = cat.checks.reduce((s, ch) => s + PTS[ch.estado], 0);
+      total += cp;
+      const pct = Math.round(cp / 25 * 100);
+      const barC = pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626";
+      const items = cat.checks.map(ch =>
+        `<div class="chk-item"><i class="ti ti-${ICO[ch.estado]}" style="color:${COL[ch.estado]}" aria-hidden="true"></i><span>${escapeHtml(ch.label)}</span></div>`).join("");
+      cats += `<details class="chk-cat" open>
+          <summary><span class="chk-cat-name">${escapeHtml(cat.nombre)}</span><span class="chk-cat-pts">${cp}/25</span></summary>
+          <div class="ats-cat-bar" style="margin:.5rem 0 .6rem"><span style="width:${pct}%;background:${barC}"></span></div>
+          ${items}
+        </details>`;
+    });
+    const tc = total >= 80 ? "#16A34A" : total >= 50 ? "#D97706" : "#DC2626";
+    const veredicto = total >= 80 ? "Tu CV está bien preparado para ATS"
+      : total >= 50 ? "Tu CV pasa lo básico, pero hay margen de mejora"
+      : "Tu CV necesita ajustes importantes para los ATS";
+    document.getElementById("checklist-resultado").innerHTML =
+      `<div class="card chk-score"><div class="n" style="color:${tc}">${total}/100</div>` +
+      `<div class="l">${escapeHtml(veredicto)}</div></div>` +
+      `<div style="margin-top:1rem">${cats}</div>`;
+  }
+
   function cambiarTab(tab) {
     document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
     document.getElementById("tab-" + tab).classList.add("active");
     document.getElementById("tabbtn-" + tab).classList.add("active");
+    // Checklist: pre-rellenar con el CV ya pegado en "Adaptar a vacante"
+    if (tab === "checklist") {
+      const dst = document.getElementById("checklist-cv");
+      const src = document.getElementById("cv");
+      if (dst && src && !dst.value.trim() && src.value.trim()) dst.value = src.value;
+    }
   }
 
   // ── Análisis ATS standalone (sin vacante) ─────────────────────
