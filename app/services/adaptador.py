@@ -560,6 +560,24 @@ def _kw_cubierta(cv_alias: str, kw: str) -> bool:
     return False
 
 
+_NEGACION = (r"(?:no|sin|nunca|carece de|falta de|desconozco|without|"
+             r"lack of|no experience(?: in)?|sin experiencia(?: en)?)")
+
+
+def _kw_negada(cv_alias: str, kw: str) -> bool:
+    """
+    True si la keyword aparece en CONTEXTO NEGATIVO (precedida por una negación a
+    ≤3 palabras): «sin experiencia en Python», «no domino AWS». Evita marcar como
+    cubierta una skill que el CV declara NO tener.
+    """
+    for var in equivalentes(kw):
+        patron = re.compile(
+            rf"\b{_NEGACION}\s+(?:\w+\s+){{0,3}}{re.escape(var)}\b", re.IGNORECASE)
+        if patron.search(cv_alias):
+            return True
+    return False
+
+
 def _analizar_cobertura(
     kw_vacante: List[str], texto_cv: str
 ) -> Tuple[List[str], List[str]]:
@@ -573,7 +591,7 @@ def _analizar_cobertura(
     for kw in kw_vacante:
         if norm_alias(kw) in _GEN_NORM:
             continue  # término genérico de prosa: ni cubierta ni sugerida
-        if _kw_cubierta(cv_alias, kw):
+        if _kw_cubierta(cv_alias, kw) and not _kw_negada(cv_alias, kw):
             cubiertas.append(kw)
         else:
             sugeridas.append(kw)

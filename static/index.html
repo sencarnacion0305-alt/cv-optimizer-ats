@@ -1459,6 +1459,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
             <h4><i class="ti ti-alert-triangle" aria-hidden="true"></i> Keywords sugeridas</h4>
             <div class="chips" id="chips-sugeridas"></div>
           </div>
+
+          <div id="cv-diagnostico" style="display:none;margin-top:1.1rem;text-align:left"></div>
         </div>
       </div>
 
@@ -1830,6 +1832,117 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     }
   }
 
+  // ════════════ Diagnóstico de contenido (cliente, sin API) ════════════
+  function checkContactInfo(cvText) {
+    return {
+      email:    /[\w.+-]+@[\w-]+\.\w{2,}/i.test(cvText),
+      phone:    /(?:\+?\d[\s\-.]?){7,15}/.test(cvText),
+      linkedin: /linkedin\.com\/in\//i.test(cvText),
+      name:     cvText.trim().split("\n")[0].trim().length > 3,
+    };
+  }
+
+  function checkDates(cvText) {
+    const goodDatePattern = /(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\.?\s+\d{4}/gi;
+    const vaguePatterns = [
+      /hace\s+\w+\s+años/gi, /sin\s+fecha/gi, /no\s+recuerdo/gi, /\(periodo:/gi,
+    ];
+    const goodDates = cvText.match(goodDatePattern) || [];
+    const vagueMatches = vaguePatterns.flatMap(p => cvText.match(p) || []);
+    return { goodDatesCount: goodDates.length, vagueFound: vagueMatches };
+  }
+
+  function checkLength(cvText) {
+    const words = cvText.trim().split(/\s+/).filter(Boolean).length;
+    const pages = Math.round((words / 400) * 10) / 10;
+    if (words < 250) return { status: "warning", words,
+      msg: `CV muy corto (~${pages} pág). Añade más detalle en experiencia.` };
+    if (words > 900) return { status: "warning", words,
+      msg: `CV muy largo (~${pages} pág). Condénsalo a 2 páginas máximo.` };
+    return { status: "ok", words, msg: `Longitud ideal (~${pages} pág, ${words} palabras)` };
+  }
+
+  function checkRepetition(cvText) {
+    const stop = new Set(["de","la","el","en","y","a","que","los","las","con","por","para","un","una","su","sus","se","es","son","fue","era","al","del","lo","le","me","mi","tu","te","si","no","ya","the","and","for","with","that","this","from","were","was"]);
+    const words = cvText.toLowerCase().match(/\b[a-záéíóúñü]{4,}\b/g) || [];
+    const freq = {};
+    words.forEach(w => { if (!stop.has(w)) freq[w] = (freq[w] || 0) + 1; });
+    return Object.entries(freq).filter(([, c]) => c >= 4).sort((a, b) => b[1] - a[1])
+      .map(([w, c]) => `"${w}" ×${c}`);
+  }
+
+  const WEAK_PHRASES = [
+    "responsable de", "ayudé a", "ayude a", "participé en", "participe en",
+    "colaboré en", "colabore en", "trabajé en", "trabaje en", "me encargué de",
+    "fui parte de", "apoyé en", "estuve involucrado", "contribuí a", "asistí en",
+    "realicé tareas", "responsible for", "helped to", "helped with", "worked on",
+    "in charge of", "assisted with", "involved in",
+  ];
+  function checkWeakPhrases(cvText) {
+    const lower = cvText.toLowerCase();
+    return WEAK_PHRASES.filter(p => lower.includes(p));
+  }
+
+  function checkKeywordStuffing(cvText) {
+    const lines = cvText.split("\n");
+    const stuffed = lines.filter(line => {
+      const words = line.trim().split(/[\s,;|]+/).filter(w => w.length > 2);
+      const hasVerb = /^(lider|gest|desar|implement|optim|diseñ|constru|analiz|coordin|led|managed|built|developed)/i.test(line.trim());
+      return words.length >= 6 && !hasVerb && line.includes(",");
+    });
+    return stuffed.length > 2;
+  }
+
+  function renderDiagnostico(cvText) {
+    const cont = document.getElementById("cv-diagnostico");
+    if (!cont) return;
+    if (!cvText || cvText.trim().length < 20) { cont.style.display = "none"; return; }
+
+    const items = [];
+    const c = checkContactInfo(cvText);
+    const piezas = [
+      (c.email ? "✓" : "✗") + " Email",
+      (c.phone ? "✓" : "✗") + " Teléfono",
+      (c.linkedin ? "✓" : "✗") + " LinkedIn",
+    ];
+    items.push({ estado: (c.email && c.phone && c.linkedin) ? "ok" : "warning",
+      t: "Información de contacto", d: piezas.join("   ") });
+
+    const len = checkLength(cvText);
+    items.push({ estado: len.status, t: "Longitud del CV", d: len.msg });
+
+    const dt = checkDates(cvText);
+    if (dt.vagueFound.length)
+      items.push({ estado: "warning", t: "Fechas ambiguas",
+        d: `${dt.vagueFound.length} expresión(es): ${dt.vagueFound.slice(0, 3).join(", ")}` });
+
+    const weak = checkWeakPhrases(cvText);
+    if (weak.length)
+      items.push({ estado: "warning", t: "Frases débiles de relleno",
+        d: `${weak.length} detectada(s): ${weak.slice(0, 4).join(", ")} — usa verbos de acción + resultado` });
+
+    const rep = checkRepetition(cvText);
+    if (rep.length)
+      items.push({ estado: "warning", t: "Palabras muy repetidas",
+        d: `${rep.slice(0, 5).join(", ")} — considera sinónimos` });
+
+    if (checkKeywordStuffing(cvText))
+      items.push({ estado: "warning", t: "Keyword stuffing",
+        d: "Tienes keywords listadas sin contexto. Intégralas en bullets de experiencia con resultados." });
+
+    let html = `<div class="section-title" style="margin-bottom:.5rem"><i class="ti ti-list-check" aria-hidden="true"></i> Diagnóstico del CV</div>`;
+    items.forEach(it => {
+      const icono = it.estado === "ok" ? "circle-check" : "alert-triangle";
+      html += `<div class="ats-check ${it.estado}" style="margin-bottom:.4rem">
+          <span class="ico"><i class="ti ti-${icono}" aria-hidden="true"></i></span>
+          <div class="body"><div class="t" style="font-size:.84rem">${escapeHtml(it.t)}</div>
+          <div class="d">${escapeHtml(it.d)}</div></div>
+        </div>`;
+    });
+    cont.innerHTML = html;
+    cont.style.display = "block";
+  }
+
   function renderResultados(d) {
     // ── Score circular ──────────────────────────────────────────
     const score = d.score_match;
@@ -1896,6 +2009,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     // ── Keywords ────────────────────────────────────────────────
     renderChips("chips-cubiertas", d.keywords_cubiertas, "chip-green");
     renderChips("chips-sugeridas", d.keywords_sugeridas, "chip-orange");
+
+    // ── Diagnóstico de contenido (FEAT-01..06, en el cliente) ───
+    renderDiagnostico((document.getElementById("cv") || {}).value || "");
 
     // ── CV adaptado ──────────────────────────────────────────────
     document.getElementById("cv-resumen").textContent = d.cv_adaptado.resumen;

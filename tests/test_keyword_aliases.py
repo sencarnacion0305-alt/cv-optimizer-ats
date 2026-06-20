@@ -62,3 +62,12 @@ def test_no_falso_positivo():
     cubiertas, sugeridas = _analizar_cobertura(["docker"], "Skilled in AWS and Kubernetes.")
     assert "docker" in sugeridas
     assert "docker" not in cubiertas
+
+
+def test_feat07_keyword_negada_no_cubierta():
+    """FEAT-07: una keyword en contexto negativo NO cuenta como cubierta."""
+    cubiertas, sugeridas = _analizar_cobertura(
+        ["python", "aws"], "Strong with AWS but sin experiencia en Python.")
+    assert "aws" in cubiertas
+    assert "python" in sugeridas
+    assert "python" not in cubiertas
