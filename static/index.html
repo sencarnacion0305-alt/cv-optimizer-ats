@@ -2532,7 +2532,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const idxExp = lower.search(/\b(experience|experiencia|employment)\b/);
     const ordenOk = idxRes === -1 || idxExp === -1 || idxRes < idxExp;
 
-    const sinTabla = !/[│┃]|[─━]{3,}|\t{2,}|\|\s*\S.*\|/.test(cv);
+    const _lineasPipe = cv.split("\n").filter(l => (l.match(/\|/g) || []).length >= 2).length;
+    const sinTabla = !/[│┃]|[─━]{3,}|\t{2,}/.test(cv) && _lineasPipe < 3;
     const sinChars = !/[‘’“”•▪●—\u{1F300}-\u{1FAFF}]/u.test(cv);
     const tieneVinetas = /^[\s]*[-•*–·]\s+/m.test(cv);
     const conMetrica = lineas.filter(l => /\d+\s*%|\$\s*\d|\b\d[\d.,]*\s*\+|\bx\s?\d|\d{2,}/.test(l)).length;

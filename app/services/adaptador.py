@@ -417,14 +417,19 @@ def _nombres_empresa(texto: str) -> Set[str]:
     'Empresa is', 'Empresa,'.
     """
     patron = re.compile(
-        r"\b(?:at|join|for|company|empresa)\s+([A-Z][a-z]{2,15})\b|"
-        r"\b([A-Z][a-z]{2,15})\s+(?:is |are |was |provides |offers |seeks )",
+        r"\b(?:at|join|for|company|empresa|en|para|trabajar[aá]s en|[uú]nete a)\s+"
+        r"([A-Z][a-zA-Z0-9&.\-]{1,18})\b|"
+        r"\b([A-Z][a-zA-Z0-9&.\-]{1,18})\s+(?:is |are |was |provides |offers |seeks |"
+        r"hiring |es una |es la |somos |ofrece |busca |necesita |requiere |"
+        r"l[ií]der en |se dedica )",
         re.MULTILINE,
     )
     nombres: Set[str] = set()
     for m in patron.finditer(texto):
-        nombre = (m.group(1) or m.group(2) or "").lower()
-        if nombre and nombre not in STOPWORDS:
+        nombre = (m.group(1) or m.group(2) or "").lower().strip(".-&")
+        # No descartar términos técnicos reales (python, aws…) aunque sigan a 'en/for'
+        if (nombre and nombre not in STOPWORDS and nombre not in TECH_SINGLE
+                and nombre not in UBICACIONES):
             nombres.add(nombre)
     return nombres
 
@@ -753,6 +758,36 @@ def _extraer_experiencias(cv_texto: str) -> List[str]:
     return exp[:5] if exp else _oraciones_de(cv_texto)[:3]
 
 
+_CASING_SKILL = {
+    "python": "Python", "java": "Java", "javascript": "JavaScript",
+    "typescript": "TypeScript", "docker": "Docker", "kubernetes": "Kubernetes",
+    "postgresql": "PostgreSQL", "postgres": "PostgreSQL", "mysql": "MySQL",
+    "mongodb": "MongoDB", "fastapi": "FastAPI", "django": "Django", "flask": "Flask",
+    "react": "React", "angular": "Angular", "vue": "Vue.js", "nodejs": "Node.js",
+    "node": "Node.js", "nosql": "NoSQL", "php": "PHP", "ruby": "Ruby", "golang": "Go",
+    "github": "GitHub", "gitlab": "GitLab", "jenkins": "Jenkins", "terraform": "Terraform",
+    "ansible": "Ansible", "kafka": "Kafka", "redis": "Redis", "graphql": "GraphQL",
+    "elasticsearch": "Elasticsearch", "splunk": "Splunk", "wazuh": "Wazuh",
+    "metasploit": "Metasploit", "wireshark": "Wireshark", "power bi": "Power BI",
+    "powerbi": "Power BI", "tableau": "Tableau", "excel": "Excel", "google analytics":
+    "Google Analytics", "fortinet": "Fortinet", "sophos": "Sophos",
+}
+_SIGLAS_UP = {"aws", "gcp", "sql", "html", "css", "api", "rest", "siem", "edr", "soc",
+              "ids", "ips", "waf", "dlp", "ceh", "oscp", "cissp", "cism", "seo", "sem",
+              "iam", "vpn", "ai", "ml", "nlp", "qa", "ci", "cd", "it", "ux", "ui", "rgpd",
+              "ens", "nmap"}
+
+
+def _formato_skill(s: str) -> str:
+    """Capitalización canónica de una skill (docker -> Docker, aws -> AWS)."""
+    sl = s.lower().strip()
+    if sl in _CASING_SKILL:
+        return _CASING_SKILL[sl]
+    if sl in _SIGLAS_UP:
+        return sl.upper()
+    return s[:1].upper() + s[1:] if s else s
+
+
 def _extraer_habilidades(cv_texto: str, kw_vacante: List[str]) -> List[str]:
     """
     Extrae habilidades reales (TECH_SINGLE o compuestos técnicos). Prioriza la
@@ -778,13 +813,13 @@ def _extraer_habilidades(cv_texto: str, kw_vacante: List[str]) -> List[str]:
     prioridad = [h for h in compuestos_en_cv + tech_en_cv if h in kw_vac_set]
     resto     = [h for h in compuestos_en_cv + tech_en_cv if h not in kw_vac_set]
 
-    # Deduplicar manteniendo orden
+    # Deduplicar manteniendo orden y aplicar capitalización canónica
     vistos: Set[str] = set()
     resultado = []
     for h in prioridad + resto:
         if h not in vistos:
             vistos.add(h)
-            resultado.append(h)
+            resultado.append(_formato_skill(h))
     return resultado[:12]
 
 

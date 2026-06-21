@@ -53,7 +53,7 @@ def test_backend_no_es_skill_en_prosa():
 
 
 def test_skills_reales_si_extraidos():
-    skills = _extraer_habilidades(CV, [])
+    skills = [s.lower() for s in _extraer_habilidades(CV, [])]
     assert "python" in skills
     assert "docker" in skills
     assert ("postgresql" in skills or "postgres" in skills)

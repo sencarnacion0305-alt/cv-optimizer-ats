@@ -42,7 +42,7 @@ def test_backend_no_cuenta_como_cubierta():
 
 
 def test_skills_reales_si_presentes():
-    skills = _extraer_habilidades(CV, [])
+    skills = [s.lower() for s in _extraer_habilidades(CV, [])]
     assert "aws" in skills
     assert "docker" in skills
 

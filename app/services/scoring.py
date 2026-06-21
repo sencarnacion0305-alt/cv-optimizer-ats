@@ -75,8 +75,10 @@ _FECHA_MALA = re.compile(r"\b(0?[1-9]|1[0-2])[/-](19|20)\d{2}\b|'\d{2}\b")
 # Caracteres problemáticos para ATS
 _CHARS_RAROS = re.compile(r"[‘’“”•▪●—"
                           r"\U0001F300-\U0001FAFF]")
-# Señales de tablas/columnas en texto plano
-_TABLA_SIGNS = re.compile(r"[│┃|]\s*\S.*[│┃|]|[─━]{3,}|\t{2,}")
+# Señales de tablas/columnas en texto plano (box-drawing y tabs múltiples).
+# El pipe ASCII '|' NO se incluye aquí: una sola línea de contacto
+# "Email | Tel | Ciudad" no es una tabla — eso se mide por nº de líneas con pipes.
+_TABLA_SIGNS = re.compile(r"[│┃]|[─━]{3,}|\t{2,}")
 
 
 def _bullets_de(cv_texto: str, secciones: Dict[str, List[str]]) -> List[str]:
@@ -142,7 +144,9 @@ def _dim_keywords(cv: str, vacante: str, cubiertas, sugeridas, kw_vacante,
 
 def _dim_formato(cv: str) -> Dict:
     n_palabras = len(cv.split())
-    sin_tabla = not _TABLA_SIGNS.search(cv)
+    # Tabla real = box-drawing/tabs, o pipes en 3+ líneas (no solo el contacto)
+    lineas_pipe = sum(1 for l in cv.splitlines() if l.count("|") >= 2)
+    sin_tabla = (not _TABLA_SIGNS.search(cv)) and lineas_pipe < 3
     long_ok = 300 <= n_palabras <= 800
     long_cerca = 200 <= n_palabras <= 1000
     hay_fecha_buena = bool(_FECHA_MES.search(cv))

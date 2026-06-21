@@ -30,8 +30,31 @@ MAPEO_DEBIL = {
     "participated in": "Contributed to",
     "involved in": "Drove",
     "responsable de": "Gestioné",
+    "responsable por": "Gestioné",
     "encargado de": "Lideré",
     "encargada de": "Lideré",
+    "fui responsable de": "Lideré",
+    "me encargué de": "Lideré",
+    "me encargue de": "Lideré",
+    "a cargo de": "Lideré",
+    "ayudé a": "Impulsé",
+    "ayude a": "Impulsé",
+    "ayudé en": "Apoyé",
+    "ayude en": "Apoyé",
+    "apoyé en": "Apoyé",
+    "trabajé en": "Desarrollé",
+    "trabaje en": "Desarrollé",
+    "trabajé con": "Utilicé",
+    "trabaje con": "Utilicé",
+    "participé en": "Contribuí a",
+    "participe en": "Contribuí a",
+    "colaboré en": "Contribuí a",
+    "colabore en": "Contribuí a",
+    "fui parte de": "Integré",
+    "estuve involucrado en": "Impulsé",
+    "realicé tareas de": "Ejecuté",
+    "realice tareas de": "Ejecuté",
+    "me ocupé de": "Gestioné",
 }
 
 # Gerundios comunes -> pasado (irregulares y de consonante doblada)
@@ -260,7 +283,9 @@ def _es_bullet_de_logro(linea: str) -> bool:
 
 
 def mejorar_bullets(cv_texto: str) -> Dict:
-    lineas = [l.strip() for l in cv_texto.splitlines() if l.strip()]
+    # Quitar prefijos de viñeta para que la detección de verbos débiles funcione
+    lineas = [re.sub(r"^[\s\-–—•·*▪●○‣◦]+", "", l).strip()
+              for l in cv_texto.splitlines() if l.strip()]
     sector = detectar_sector(cv_texto)
 
     mejoras: List[Dict] = []
