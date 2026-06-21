@@ -28,3 +28,13 @@ class AdaptarCVResponse(BaseModel):
     titulo_vacante: Optional[str] = None
     titulo_cubierto: bool = True
     score_desglose: Optional[dict] = None  # 5 dimensiones: {total, dimensiones:[...]}
+
+    # --- Campos enriquecidos (compatibilidad: todos opcionales) ---
+    score: Optional[int] = None                              # alias de score_match
+    score_breakdown: Optional[dict] = None                   # {dimension: {score, max}}
+    keywords_hard_skills_cubiertas: Optional[List[str]] = None
+    keywords_soft_skills_cubiertas: Optional[List[str]] = None
+    keywords_hard_skills_faltantes: Optional[List[str]] = None
+    keywords_soft_skills_faltantes: Optional[List[str]] = None
+    contact_info: Optional[dict] = None
+    content_signals: Optional[dict] = None

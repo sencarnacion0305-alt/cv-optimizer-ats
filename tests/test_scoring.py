@@ -62,3 +62,19 @@ def test_cargo_objetivo_detectado():
 def test_estructura_pobre_penalizada():
     est = [x for x in _d(CV_POBRE)["dimensiones"] if x["nombre"] == "Estructura y secciones"][0]
     assert est["puntos"] <= 5
+
+
+def test_response_enriquecido():
+    r = adaptar_cv(AdaptarCVRequest(cv_texto=CV_BUENO, vacante_texto=VACANTE))
+    # alias y compatibilidad
+    assert r.score == r.score_match
+    assert r.score_desglose is not None and r.keywords_cubiertas is not None
+    # score_breakdown con las 5 claves y forma {score, max}
+    assert set(r.score_breakdown.keys()) == {
+        "keywords_match", "formato_ats", "estructura", "calidad_contenido", "cargo_objetivo"}
+    assert all(set(v.keys()) == {"score", "max"} for v in r.score_breakdown.values())
+    # hard/soft + contacto + señales
+    assert isinstance(r.keywords_hard_skills_cubiertas, list)
+    assert "email_found" in r.contact_info
+    assert "word_count" in r.content_signals
+    assert r.content_signals["word_count"] > 0

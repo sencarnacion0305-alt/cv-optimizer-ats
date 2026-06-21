@@ -20,7 +20,7 @@ from typing import Dict, List
 from app.services.adaptador import (
     _segmentar_secciones, _titulo_en_cv, norm_alias, _kw_cubierta, _normalizar,
 )
-from app.services.parser_ats import EMAIL_RE, PHONE_RE
+from app.services.parser_ats import EMAIL_RE, PHONE_RE, LINKEDIN_RE
 from app.services.mejorador_bullets import tiene_metrica
 
 
@@ -40,6 +40,14 @@ SOFT_SKILLS = {
     "analytical", "analitico", "analítico", "attention to detail", "detail oriented",
     "interpersonal", "presentation", "mentoring", "mentoria", "mentoría",
     "autonomia", "autonomía", "self-motivated", "resiliencia", "resilience",
+    "gestion del cambio", "gestión del cambio", "change management",
+    "toma de decisiones", "decision making", "resolucion de conflictos",
+    "resolución de conflictos", "conflict resolution", "orientacion a resultados",
+    "orientación a resultados", "results oriented", "atencion al cliente",
+    "atención al cliente", "customer service", "pensamiento estrategico",
+    "pensamiento estratégico", "strategic thinking", "trabajo bajo presion",
+    "trabajo bajo presión", "gestion de equipos", "gestión de equipos",
+    "team management", "stakeholder management",
 }
 
 _FRASES_RELLENO = re.compile(
@@ -253,6 +261,70 @@ def _empaquetar(nombre: str, checks: List[Dict], maximo: int) -> Dict:
 
 
 # ---------------------------------------------------------------------------
+# Datos estructurados para el response del API
+# ---------------------------------------------------------------------------
+
+_STOP_REP = {
+    "de", "la", "el", "en", "y", "a", "que", "los", "las", "con", "por", "para",
+    "un", "una", "su", "sus", "se", "es", "son", "fue", "era", "al", "del", "lo",
+    "the", "and", "for", "with", "that", "this", "from", "were", "was", "have",
+}
+
+
+def _palabras_repetidas(cv: str) -> List[str]:
+    freq: Dict[str, int] = {}
+    for w in re.findall(r"[a-záéíóúñü]{4,}", cv.lower()):
+        if w not in _STOP_REP:
+            freq[w] = freq.get(w, 0) + 1
+    rep = sorted([(w, c) for w, c in freq.items() if c >= 4], key=lambda x: -x[1])
+    return [f"{w} x{c}" for w, c in rep[:6]]
+
+
+def _datos_estructurados(cv: str, vacante: str, cubiertas: List[str],
+                         sugeridas: List[str], secciones) -> Dict:
+    soft_norm = {norm_alias(s) for s in SOFT_SKILLS}
+    hard_cub = [k for k in cubiertas if norm_alias(k) not in soft_norm]
+    hard_fal = [k for k in sugeridas if norm_alias(k) not in soft_norm]
+
+    # Soft skills: las que pide la vacante, clasificadas por presencia en el CV
+    # (el extractor de keywords solo captura skills técnicas, no soft).
+    cv_alias, vac_alias = norm_alias(cv), norm_alias(vacante)
+    soft_cub, soft_fal, vistos = [], [], set()
+    for s in sorted(SOFT_SKILLS):
+        sn = norm_alias(s)
+        if sn in vistos or not _kw_cubierta(vac_alias, s):
+            continue
+        vistos.add(sn)
+        (soft_cub if _kw_cubierta(cv_alias, s) else soft_fal).append(s)
+
+    bullets = _bullets_de(cv, secciones)
+    n_palabras = len(cv.split())
+    return {
+        "hard_cubiertas": hard_cub,
+        "soft_cubiertas": soft_cub,
+        "hard_faltantes": hard_fal,
+        "soft_faltantes": soft_fal,
+        "contact_info": {
+            "email_found": bool(EMAIL_RE.search(cv)),
+            "phone_found": bool(PHONE_RE.search(cv)),
+            "linkedin_found": bool(LINKEDIN_RE.search(cv)),
+        },
+        "content_signals": {
+            "metrics_count": sum(1 for b in bullets if tiene_metrica(b)),
+            "weak_verbs_detected": len(_FRASES_RELLENO.findall(cv)),
+            "word_count": n_palabras,
+            "estimated_pages": round(n_palabras / 400, 1),
+            "dates_without_format": len(_FECHA_MALA.findall(cv)),
+            "repeated_words": _palabras_repetidas(cv),
+            "has_summary_section": bool(secciones.get("resumen")),
+            "has_experience_section": bool(secciones.get("experiencia")),
+            "has_education_section": bool(secciones.get("educacion")),
+            "has_skills_section": bool(secciones.get("habilidades")),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Función pública
 # ---------------------------------------------------------------------------
 
@@ -268,4 +340,6 @@ def calcular_score_compuesto(cv: str, vacante: str, cubiertas: List[str],
         _dim_cargo(cv, titulo_vacante),
     ]
     total = sum(d["puntos"] for d in dims)
-    return {"total": max(0, min(100, total)), "dimensiones": dims}
+    resultado = {"total": max(0, min(100, total)), "dimensiones": dims}
+    resultado.update(_datos_estructurados(cv, vacante, cubiertas, sugeridas, secciones))
+    return resultado

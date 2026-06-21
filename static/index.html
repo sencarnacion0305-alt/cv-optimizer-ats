@@ -675,6 +675,16 @@
     .chk-item { display: flex; align-items: flex-start; gap: .55rem; font-size: .86rem;
       padding: .3rem 0; line-height: 1.4; }
     .chk-item i { font-size: 1.05rem; flex-shrink: 0; margin-top: .05rem; }
+    /* Desglose del score: dimensiones expandibles */
+    .score-dim { border: 1px solid var(--border); border-radius: 8px; padding: .55rem .7rem;
+      margin-bottom: .45rem; background: var(--surface); }
+    .score-dim > summary { cursor: pointer; list-style: none; }
+    .score-dim > summary::-webkit-details-marker { display: none; }
+    .score-dim .dim-head { display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: .4rem; }
+    .score-dim .dim-name { font-family: var(--font-display); font-weight: 600; font-size: .84rem; }
+    .score-dim .dim-name::before { content: "▸"; color: var(--muted); margin-right: .35rem; font-size: .8em; }
+    .score-dim[open] .dim-name::before { content: "▾"; }
 
     /* ── UX polish (Bloque 5) ──────────────────────────────────── */
     .word-counter { font-size: .72rem; color: var(--muted); margin-top: .3rem;
@@ -2096,19 +2106,22 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     // ── Desglose del score (5 dimensiones) ──────────────────────
     const desg = document.getElementById("score-desglose");
     if (d.score_desglose && d.score_desglose.dimensiones) {
-      let html = `<div class="section-title" style="margin-bottom:.5rem"><i class="ti ti-chart-bar" aria-hidden="true"></i> Desglose del score</div>`;
+      let html = `<div class="section-title" style="margin-bottom:.5rem"><i class="ti ti-chart-bar" aria-hidden="true"></i> Desglose del score <span style="font-weight:400;text-transform:none;letter-spacing:normal;color:var(--muted);font-size:.72rem">(clic para ver detalle)</span></div>`;
       d.score_desglose.dimensiones.forEach(dim => {
         const pct = dim.max ? Math.round(dim.puntos / dim.max * 100) : 0;
         const c = pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626";
-        const titulo = dim.checks.map(ch =>
-          `${ch.ok ? "✓" : "·"} ${ch.label} (${ch.pts}/${ch.max})`).join("\n");
-        html += `<div class="ats-cat" style="margin-top:.6rem" title="${escapeHtml(titulo)}">
-            <div class="ats-cat-header" style="margin-bottom:.3rem">
-              <span class="name" style="font-size:.84rem">${escapeHtml(dim.nombre)}</span>
-              <span class="pts">${dim.puntos}/${dim.max}</span>
-            </div>
-            <div class="ats-cat-bar"><span style="width:${pct}%;background:${c}"></span></div>
-          </div>`;
+        const checksHtml = dim.checks.map(ch => {
+          const col = ch.ok ? "var(--green)" : (ch.pts > 0 ? "var(--orange)" : "var(--red)");
+          const ico = ch.ok ? "circle-check" : (ch.pts > 0 ? "alert-triangle" : "circle-x");
+          return `<div class="chk-item"><i class="ti ti-${ico}" style="color:${col}" aria-hidden="true"></i><span>${escapeHtml(ch.label)} <span style="color:var(--muted)">(${ch.pts}/${ch.max})</span></span></div>`;
+        }).join("");
+        html += `<details class="score-dim">
+            <summary>
+              <div class="dim-head"><span class="dim-name">${escapeHtml(dim.nombre)}</span><span class="chk-cat-pts">${dim.puntos}/${dim.max}</span></div>
+              <div class="ats-cat-bar"><span style="width:${pct}%;background:${c}"></span></div>
+            </summary>
+            <div style="margin-top:.6rem">${checksHtml}</div>
+          </details>`;
       });
       desg.innerHTML = html;
       desg.style.display = "block";

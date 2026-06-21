@@ -883,6 +883,16 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
             "esas habilidades, reformula para no negarlas."))
         notas = notas[:6]
 
+    _sb_map = {
+        "Keywords match": "keywords_match", "Formato ATS": "formato_ats",
+        "Estructura y secciones": "estructura", "Calidad de contenido": "calidad_contenido",
+        "Cargo objetivo": "cargo_objetivo",
+    }
+    score_breakdown = {
+        _sb_map[d["nombre"]]: {"score": d["puntos"], "max": d["max"]}
+        for d in desglose["dimensiones"] if d["nombre"] in _sb_map
+    }
+
     return AdaptarCVResponse(
         cv_adaptado=CVAdaptado(
             resumen=resumen,
@@ -896,4 +906,12 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
         titulo_vacante=titulo_vacante or None,
         titulo_cubierto=titulo_cubierto,
         score_desglose=desglose,
+        score=score,
+        score_breakdown=score_breakdown,
+        keywords_hard_skills_cubiertas=desglose.get("hard_cubiertas", [])[:15],
+        keywords_soft_skills_cubiertas=desglose.get("soft_cubiertas", []),
+        keywords_hard_skills_faltantes=desglose.get("hard_faltantes", [])[:10],
+        keywords_soft_skills_faltantes=desglose.get("soft_faltantes", []),
+        contact_info=desglose.get("contact_info"),
+        content_signals=desglose.get("content_signals"),
     )
