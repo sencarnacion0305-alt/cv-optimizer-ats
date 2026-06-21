@@ -251,6 +251,11 @@
     }
     .chip-green { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
     .chip-orange { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+    .chip-hard { background: #DBEAFE; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .chip-soft { background: #CCFBF1; color: #0F766E; border: 1px solid #99F6E4; }
+    .kw-grupo + .kw-grupo { margin-top: .55rem; }
+    .kw-grupo-lbl { font-size: .7rem; color: var(--muted); font-weight: 600;
+      display: flex; align-items: center; gap: .3rem; margin-bottom: .3rem; }
 
     /* Right column */
     .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
@@ -1492,7 +1497,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <!-- Columna izquierda: score + keywords -->
       <div>
         <div class="score-card">
-          <div class="score-label">Compatibilidad ATS<span class="info-tip" tabindex="0"><i class="ti ti-info-circle" aria-hidden="true"></i><span class="tip-box">El score mide la compatibilidad de tu CV con esta vacante específica. Un score de 75+ se considera buena compatibilidad por reclutadores y herramientas ATS.</span></span></div>
+          <div class="score-label">Compatibilidad ATS<span class="info-tip" tabindex="0"><i class="ti ti-info-circle" aria-hidden="true"></i><span class="tip-box">El score mide la compatibilidad de tu CV con esta vacante específica. Los reclutadores y herramientas ATS recomiendan un score mínimo de 75 antes de enviar tu candidatura.</span></span></div>
           <div class="score-circle-wrap">
             <svg class="score-circle" viewBox="0 0 120 120">
               <circle class="track" cx="60" cy="60" r="54" />
@@ -2088,8 +2093,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     const fill = document.getElementById("score-fill");
     fill.style.strokeDashoffset = offset;
 
-    // Color según score
-    const color = score >= 70 ? "#16A34A" : score >= 40 ? "#D97706" : "#DC2626";
+    // Color según score (alineado al umbral recomendado de 75)
+    const color = score >= 75 ? "#16A34A" : score >= 50 ? "#D97706" : "#DC2626";
     fill.style.stroke = color;
 
     const numEl = document.getElementById("score-number");
@@ -2098,10 +2103,15 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     // Animación del número
     animarNumero(numEl, 0, score, 1000);
 
+    // Veredicto en 4 niveles (SCORE-02)
     const desc = document.getElementById("score-desc");
-    if      (score >= 70) { desc.textContent = "Excelente compatibilidad"; desc.style.color = "#16A34A"; }
-    else if (score >= 40) { desc.textContent = "Compatibilidad media";     desc.style.color = "#D97706"; }
-    else                  { desc.textContent = "Baja compatibilidad";      desc.style.color = "#DC2626"; }
+    let dTxt, dCol, dIco;
+    if      (score >= 90) { dTxt = "Match excelente";                   dCol = "#15803D"; dIco = "trophy"; }
+    else if (score >= 75) { dTxt = "Buen match — aplica con confianza"; dCol = "#16A34A"; dIco = "circle-check"; }
+    else if (score >= 50) { dTxt = "Puede pasar, sigue optimizando";    dCol = "#D97706"; dIco = "alert-circle"; }
+    else                  { dTxt = "Alto riesgo de ser filtrado";       dCol = "#DC2626"; dIco = "alert-triangle"; }
+    desc.innerHTML = `<i class="ti ti-${dIco}" style="margin-right:.35rem" aria-hidden="true"></i>${dTxt}`;
+    desc.style.color = dCol;
 
     // ── Desglose del score (5 dimensiones) ──────────────────────
     const desg = document.getElementById("score-desglose");
@@ -2146,8 +2156,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     }
 
     // ── Keywords ────────────────────────────────────────────────
-    renderChips("chips-cubiertas", d.keywords_cubiertas, "chip-green");
-    renderChips("chips-sugeridas", d.keywords_sugeridas, "chip-orange");
+    renderChipsHardSoft("chips-cubiertas", d.keywords_hard_skills_cubiertas, d.keywords_soft_skills_cubiertas, d.keywords_cubiertas);
+    renderChipsHardSoft("chips-sugeridas", d.keywords_hard_skills_faltantes, d.keywords_soft_skills_faltantes, d.keywords_sugeridas);
 
     // ── Diagnóstico de contenido (FEAT-01..06, en el cliente) ───
     renderDiagnostico((document.getElementById("cv") || {}).value || "");
@@ -2191,6 +2201,22 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       span.textContent = kw;
       el.appendChild(span);
     });
+  }
+
+  // Chips separados en Hard skills (azul) y Soft skills (verde) — SCORE-03
+  function renderChipsHardSoft(containerId, hard, soft, fallback) {
+    const el = document.getElementById(containerId);
+    hard = hard || []; soft = soft || [];
+    if (!hard.length && !soft.length && fallback && fallback.length) hard = fallback;
+    if (!hard.length && !soft.length) {
+      el.innerHTML = '<span style="color:var(--muted);font-size:.8rem">Ninguna detectada</span>';
+      return;
+    }
+    const grupo = (lista, cls, ico, lbl) => !lista.length ? "" :
+      `<div class="kw-grupo"><div class="kw-grupo-lbl"><i class="ti ${ico}" aria-hidden="true"></i> ${lbl}</div>` +
+      `<div class="chips">${lista.map(k => `<span class="chip ${cls}">${escapeHtml(k)}</span>`).join("")}</div></div>`;
+    el.innerHTML = grupo(hard, "chip-hard", "ti-tool", "Hard skills") +
+                   grupo(soft, "chip-soft", "ti-users", "Soft skills");
   }
 
   function renderLista(id, items) {
