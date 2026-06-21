@@ -308,6 +308,10 @@
       border-radius: 50%;
       background: var(--accent);
     }
+    .cv-puesto { margin-bottom: .8rem; }
+    .cv-puesto-titulo { font-family: var(--font-display); font-weight: 600;
+      font-size: .9rem; color: var(--text); margin-bottom: .3rem; }
+    .cv-puesto ul { list-style: none; display: flex; flex-direction: column; gap: .35rem; }
 
     /* Notas */
     .notas-list {
@@ -1536,7 +1540,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
           <div class="cv-resumen" id="cv-resumen"></div>
           <div class="cv-subsection">
             <h4>Experiencia relevante</h4>
-            <ul id="cv-experiencia"></ul>
+            <div id="cv-experiencia"></div>
           </div>
           <div class="cv-subsection">
             <h4>Habilidades</h4>
@@ -2169,7 +2173,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     document.getElementById("cv-resumen").innerHTML =
       resaltarKeywords(d.cv_adaptado.resumen, d.keywords_cubiertas, d.keywords_sugeridas);
 
-    renderLista("cv-experiencia", d.cv_adaptado.experiencia);
+    renderExperiencia(d.cv_adaptado);
     renderLista("cv-habilidades", d.cv_adaptado.habilidades);
 
     // ── Notas ────────────────────────────────────────────────────
@@ -2227,6 +2231,33 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       li.textContent = item;
       ul.appendChild(li);
     });
+  }
+
+  // Experiencia con jerarquía puesto → logros (Bug #4)
+  function renderExperiencia(cva) {
+    const cont = document.getElementById("cv-experiencia");
+    cont.innerHTML = "";
+    const est = cva.experiencia_estructurada;
+    if (est && est.length) {
+      est.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "cv-puesto";
+        let html = `<div class="cv-puesto-titulo">${escapeHtml(p.titulo)}</div>`;
+        if (p.bullets && p.bullets.length) {
+          html += `<ul>${p.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`;
+        }
+        div.innerHTML = html;
+        cont.appendChild(div);
+      });
+    } else {
+      const ul = document.createElement("ul");
+      (cva.experiencia || []).forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        ul.appendChild(li);
+      });
+      cont.appendChild(ul);
+    }
   }
 
   function animarNumero(el, desde, hasta, duracion) {

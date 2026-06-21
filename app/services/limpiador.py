@@ -79,7 +79,16 @@ LINEAS_RUIDO = re.compile(
     r"certification support|professional development|"
     r"directly contributes|safeguarding critical|"
     r"you will work with|where your expertise|"
-    r"growing soc team|growing team|join our|join the)",
+    r"growing soc team|growing team|join our|join the|"
+    # Beneficios / cultura sueltos (línea por línea), aunque no tengan encabezado
+    r"seguro\s+(m[eé]dico|de\s+salud|dental|de\s+vida)|health\s+insurance|"
+    r"comida\s+gratis|free\s+(food|lunch|snacks)|caf[eé]\s+gratis|fruta\s+gratis|"
+    r"salario\s+competitivo|competitive\s+salary|sueldo\s+competitivo|"
+    r"d[ií]as?\s+de\s+vacaciones|paid\s+time\s+off|\bpto\b|vacation\s+days|"
+    r"horario\s+flexible|flexible\s+(hours|schedule)|teletrabajo|home\s+office|"
+    r"trabajo\s+remoto|remote\s+work|plan\s+de\s+pensiones|retirement\s+plan|"
+    r"\b401k\b|stock\s+options|bonus\s+anual|annual\s+bonus|gimnasio|gym\s+membership|"
+    r"eventos\s+de\s+equipo|team\s+building|ambiente\s+(joven|din[aá]mico)|gran\s+ambiente)",
     re.IGNORECASE,
 )
 
@@ -111,6 +120,10 @@ def _es_titulo(linea: str) -> bool:
     if (3 <= len(palabras) <= 7
             and limpia[-1] not in ".!,"
             and sum(1 for p in palabras if p[0].isupper()) >= len(palabras) - 1):
+        return True
+    # Línea corta que NOMBRA una sección conocida (Beneficios, Sobre nosotros,
+    # Requisitos…) aunque tenga solo 1-2 palabras.
+    if len(limpia) < 50 and (TITULOS_RUIDO.search(limpia) or TITULOS_RELEVANTES.search(limpia)):
         return True
     return False
 

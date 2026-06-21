@@ -15,6 +15,7 @@ class CVAdaptado(BaseModel):
     resumen: str
     experiencia: List[str]
     habilidades: List[str]
+    experiencia_estructurada: Optional[List[dict]] = None  # [{titulo, bullets:[...]}]
 
 
 # --- Response ---

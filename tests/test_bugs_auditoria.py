@@ -1,9 +1,10 @@
 """Lote de auditoría en producción — bugs 1, 3, 5, 6."""
 from app.services.adaptador import (
-    _keywords_de, _formato_skill, _extraer_habilidades,
+    _keywords_de, _formato_skill, _extraer_habilidades, _experiencia_estructurada,
 )
 from app.services.mejorador_bullets import mejorar_bullets
 from app.services.scoring import _dim_formato
+from app.services.limpiador import limpiar_vacante
 
 CV_EXP = """Juan Perez
 Experiencia
@@ -55,3 +56,39 @@ def test_casing_skills():
 def test_habilidades_con_casing():
     skills = _extraer_habilidades("Ana\nHabilidades\nDocker, Python, AWS, PostgreSQL", [])
     assert "Docker" in skills and "Python" in skills and "AWS" in skills
+
+
+# ── Bug 2: limpiar vacante quita beneficios y 'sobre nosotros' ──
+_VAC = """Backend Developer
+Requisitos
+- Python y Django
+- Docker y AWS
+Sobre nosotros
+Somos una startup con gran ambiente.
+Beneficios
+- Seguro médico privado
+- Comida gratis en la oficina
+- Salario competitivo
+- 25 días de vacaciones"""
+
+
+def test_limpiar_quita_beneficios():
+    limpio = limpiar_vacante(_VAC).lower()
+    assert "python" in limpio                      # conserva requisitos
+    assert "seguro" not in limpio                  # quita beneficios
+    assert "comida gratis" not in limpio
+    assert "salario competitivo" not in limpio
+    assert "startup" not in limpio                 # quita 'sobre nosotros'
+
+
+# ── Bug 4: jerarquía puesto → logros ──
+def test_experiencia_estructurada():
+    cv = ("Juan\nExperiencia\nBackend Developer  Jan 2020 - Present\nTechCorp\n"
+          "- Construí APIs REST en Python\n- Lideré un equipo de 5 ingenieros\n"
+          "Junior Developer  2017 - 2019\nAcme Startup\n- Mantuve servicios legacy")
+    est = _experiencia_estructurada(cv)
+    assert len(est) == 2
+    assert "Backend Developer" in est[0]["titulo"]
+    assert len(est[0]["bullets"]) == 2
+    # los logros NO deben quedar como títulos
+    assert not any("Construí" in p["titulo"] for p in est)

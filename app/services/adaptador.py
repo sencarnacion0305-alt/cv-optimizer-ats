@@ -758,6 +758,54 @@ def _extraer_experiencias(cv_texto: str) -> List[str]:
     return exp[:5] if exp else _oraciones_de(cv_texto)[:3]
 
 
+_TIENE_RANGO = re.compile(r"((19|20)\d{2}|'\d{2})\s*[-–—a]\s*|present|presente|actual",
+                          re.IGNORECASE)
+
+# Una línea que EMPIEZA con verbo de acción es un logro, no un título ni empresa
+_VERBO_INICIO = re.compile(
+    r"^(constru|lider|gestion|desarroll|implement|dise[nñ]|cre[ée]|coordin|analic|"
+    r"logr|aument|reduj|mejor|dirig|ejecut|optimic|automatic|mantuv|realic|monitor|"
+    r"led|managed|built|developed|created|designed|implemented|reduced|increased|"
+    r"improved|launched|delivered|drove|optimized|achieved|resolved|analyzed|"
+    r"coordinated|automated|maintained|spearheaded|streamlined|oversaw|administered)",
+    re.IGNORECASE)
+
+
+def _experiencia_estructurada(cv_texto: str) -> List[dict]:
+    """
+    Agrupa la sección de experiencia en bloques puesto → logros, preservando la
+    jerarquía (cargo como encabezado, tareas como viñetas). Devuelve
+    [{"titulo": str, "bullets": [str]}]. Vacío si no hay sección reconocible.
+    """
+    lineas = _segmentar_secciones(cv_texto).get("experiencia", [])
+    puestos: List[dict] = []
+    actual = None
+    empresa_capturada = False
+    for raw in lineas:
+        l = _limpiar_bullet(raw)
+        if len(l) < 3:
+            continue
+        empieza_verbo = bool(_VERBO_INICIO.match(l))
+        es_titulo = (not empieza_verbo and
+                     ((len(l) < 75 and _PALABRAS_TITULO.search(l))
+                      or (len(l) < 80 and _TIENE_RANGO.search(l))))
+        if es_titulo:
+            actual = {"titulo": l, "bullets": []}
+            puestos.append(actual)
+            empresa_capturada = False
+        elif actual is None:
+            actual = {"titulo": l, "bullets": []}
+            puestos.append(actual)
+            empresa_capturada = False
+        elif (not actual["bullets"] and not empresa_capturada
+              and len(l) < 55 and not empieza_verbo and not _TIENE_RANGO.search(l)):
+            actual["titulo"] += " — " + l   # nombre de empresa / ubicación (una sola)
+            empresa_capturada = True
+        else:
+            actual["bullets"].append(l)
+    return puestos[:6]
+
+
 _CASING_SKILL = {
     "python": "Python", "java": "Java", "javascript": "JavaScript",
     "typescript": "TypeScript", "docker": "Docker", "kubernetes": "Kubernetes",
@@ -900,6 +948,7 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
 
     resumen                = _mejor_resumen(cv, kw_vacante)
     experiencias           = _extraer_experiencias(cv)
+    experiencia_estruct    = _experiencia_estructurada(cv)
     habilidades            = _extraer_habilidades(cv, kw_vacante)
     notas                  = _generar_notas(cubiertas, sugeridas, score, cv)
     if titulo_vacante and not titulo_cubierto:
@@ -933,6 +982,7 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
             resumen=resumen,
             experiencia=experiencias,
             habilidades=habilidades,
+            experiencia_estructurada=experiencia_estruct or None,
         ),
         score_match=score,
         keywords_cubiertas=cubiertas[:15],
