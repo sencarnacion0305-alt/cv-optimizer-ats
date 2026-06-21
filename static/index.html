@@ -1608,6 +1608,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="ats-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarATS(this)" />
       </label>
+      <div style="text-align:center;margin-top:.6rem">
+        <button class="btn-upload" onclick="usarCVPegado('ats')"><i class="ti ti-file-text" aria-hidden="true"></i> Usar el CV que pegué en «Adaptar»</button>
+      </div>
       <div id="ats-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
     </div>
 
@@ -1674,6 +1677,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="parsing-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarParsing(this)" />
       </label>
+      <div style="text-align:center;margin-top:.6rem">
+        <button class="btn-upload" onclick="usarCVPegado('parsing')"><i class="ti ti-file-text" aria-hidden="true"></i> Usar el CV que pegué en «Adaptar»</button>
+      </div>
       <div id="parsing-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
     </div>
 
@@ -1776,6 +1782,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="bullets-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarBullets(this)" />
       </label>
+      <div style="text-align:center;margin-top:.6rem">
+        <button class="btn-upload" onclick="usarCVPegado('bullets')"><i class="ti ti-file-text" aria-hidden="true"></i> Usar el CV que pegué en «Adaptar»</button>
+      </div>
       <div id="bullets-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
     </div>
 
@@ -1808,6 +1817,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         <span class="hint">PDF o DOCX · máx. 5 MB</span>
         <input type="file" id="plantilla-file" accept=".pdf,.docx,.doc" style="display:none" onchange="optimizarCV(this)" />
       </label>
+      <div style="text-align:center;margin-top:.6rem">
+        <button class="btn-upload" onclick="usarCVPegado('plantilla')"><i class="ti ti-file-text" aria-hidden="true"></i> Usar el CV que pegué en «Adaptar»</button>
+      </div>
       <div id="plantilla-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
     </div>
 
@@ -2656,27 +2668,47 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   }
 
   // ── Análisis ATS standalone (sin vacante) ─────────────────────
-  async function analizarATS(input) {
-    const archivo = input.files[0];
-    if (!archivo) return;
+  // ── Entrada unificada (Bug #7): <input file> o {texto} del CV pegado ──
+  const _GUARD_CT = "El servidor devolvió una respuesta inesperada. Verifica que el CV sea un PDF/DOCX válido (sin contraseña) o pega el texto.";
+  function _fuenteCV(fuente) {
+    const form = new FormData();
+    if (fuente && fuente.files) {
+      const archivo = fuente.files[0];
+      if (!archivo) return null;
+      form.append("archivo", archivo);
+      return { form, nombre: archivo.name, reset: () => { fuente.value = ""; } };
+    }
+    if (fuente && fuente.texto) {
+      form.append("cv_texto", fuente.texto);
+      return { form, nombre: "tu CV pegado", reset: () => {} };
+    }
+    return null;
+  }
+  function usarCVPegado(pestana) {
+    const t = (document.getElementById("cv").value || "").trim();
+    if (!t) {
+      alert("Primero pega tu CV en la pestaña «Adaptar a vacante» (campo «Tu CV»).");
+      cambiarTab("adaptar");
+      return;
+    }
+    const fn = { ats: analizarATS, parsing: analizarParsing, bullets: analizarBullets, plantilla: optimizarCV }[pestana];
+    if (fn) fn({ texto: t });
+  }
+
+  async function analizarATS(fuente) {
+    const src = _fuenteCV(fuente);
+    if (!src) return;
     const status    = document.getElementById("ats-file-status");
     const resultado = document.getElementById("ats-resultado");
-
     status.className = "upload-status";
-    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + archivo.name + "…";
-
-    const form = new FormData();
-    form.append("archivo", archivo);
-
+    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + src.nombre + "…";
     try {
-      const res  = await fetch("/api/v1/analizar-ats", { method: "POST", body: form });
-      if (!(res.headers.get("content-type") || "").includes("application/json"))
-        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
+      const res  = await fetch("/api/v1/analizar-ats", { method: "POST", body: src.form });
+      if (!(res.headers.get("content-type") || "").includes("application/json")) throw new Error(_GUARD_CT);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
-
       status.className = "upload-status ok";
-      status.textContent = "✅ " + archivo.name + " analizado";
+      status.textContent = "✅ " + src.nombre + " analizado";
       renderATS(data);
       resultado.style.display = "block";
       resultado.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2684,7 +2716,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       status.className = "upload-status err";
       status.textContent = "❌ " + (e.message || "No se pudo analizar el CV");
     }
-    input.value = "";
+    src.reset();
   }
 
   function renderATS(d) {
@@ -2755,24 +2787,20 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   }
 
   // ════════════ Vista del reclutador (Parsing ATS) ════════════
-  async function analizarParsing(input) {
-    const archivo = input.files[0];
-    if (!archivo) return;
+  async function analizarParsing(fuente) {
+    const src = _fuenteCV(fuente);
+    if (!src) return;
     const status    = document.getElementById("parsing-file-status");
     const resultado = document.getElementById("parsing-resultado");
     status.className = "upload-status";
-    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + archivo.name + "…";
-
-    const form = new FormData();
-    form.append("archivo", archivo);
+    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + src.nombre + "…";
     try {
-      const res  = await fetch("/api/v1/parsing-ats", { method: "POST", body: form });
-      if (!(res.headers.get("content-type") || "").includes("application/json"))
-        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
+      const res  = await fetch("/api/v1/parsing-ats", { method: "POST", body: src.form });
+      if (!(res.headers.get("content-type") || "").includes("application/json")) throw new Error(_GUARD_CT);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
       status.className = "upload-status ok";
-      status.textContent = "✅ " + archivo.name + " analizado";
+      status.textContent = "✅ " + src.nombre + " analizado";
       renderParsing(data);
       resultado.style.display = "block";
       resultado.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2780,7 +2808,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       status.className = "upload-status err";
       status.textContent = "❌ " + (e.message || "No se pudo analizar el CV");
     }
-    input.value = "";
+    src.reset();
   }
 
   function renderParsing(d) {
@@ -2906,24 +2934,20 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   }
 
   // ════════════ Mejorar bullets ════════════
-  async function analizarBullets(input) {
-    const archivo = input.files[0];
-    if (!archivo) return;
+  async function analizarBullets(fuente) {
+    const src = _fuenteCV(fuente);
+    if (!src) return;
     const status    = document.getElementById("bullets-file-status");
     const resultado = document.getElementById("bullets-resultado");
     status.className = "upload-status";
-    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + archivo.name + "…";
-
-    const form = new FormData();
-    form.append("archivo", archivo);
+    status.innerHTML = '<span class="spinner-sm"></span>Analizando ' + src.nombre + "…";
     try {
-      const res  = await fetch("/api/v1/mejorar-bullets", { method: "POST", body: form });
-      if (!(res.headers.get("content-type") || "").includes("application/json"))
-        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
+      const res  = await fetch("/api/v1/mejorar-bullets", { method: "POST", body: src.form });
+      if (!(res.headers.get("content-type") || "").includes("application/json")) throw new Error(_GUARD_CT);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
       status.className = "upload-status ok";
-      status.textContent = "✅ " + archivo.name + " analizado";
+      status.textContent = "✅ " + src.nombre + " analizado";
       renderBullets(data);
       resultado.style.display = "block";
       resultado.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2931,7 +2955,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       status.className = "upload-status err";
       status.textContent = "❌ " + (e.message || "No se pudo analizar el CV");
     }
-    input.value = "";
+    src.reset();
   }
 
   function renderBullets(d) {
@@ -2968,22 +2992,18 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   }
 
   // ════════════ Optimizador ATS (pipeline completo) ════════════
-  async function optimizarCV(input) {
-    const archivo = input.files[0];
-    if (!archivo) return;
+  async function optimizarCV(fuente) {
+    const src = _fuenteCV(fuente);
+    if (!src) return;
     const status = document.getElementById("plantilla-status");
     const resultado = document.getElementById("plantilla-resultado");
     const vacante = document.getElementById("optimizador-vacante").value.trim();
+    if (vacante) src.form.append("vacante_texto", vacante);
     status.className = "upload-status";
-    status.innerHTML = '<span class="spinner-sm"></span>Optimizando ' + archivo.name + "…";
-
-    const form = new FormData();
-    form.append("archivo", archivo);
-    if (vacante) form.append("vacante_texto", vacante);
+    status.innerHTML = '<span class="spinner-sm"></span>Optimizando ' + src.nombre + "…";
     try {
-      const res = await fetch("/api/v1/optimizar-cv", { method: "POST", body: form });
-      if (!(res.headers.get("content-type") || "").includes("application/json"))
-        throw new Error("El servidor devolvió una respuesta inesperada. Verifica que el archivo sea un PDF o DOCX válido y no esté protegido con contraseña.");
+      const res = await fetch("/api/v1/optimizar-cv", { method: "POST", body: src.form });
+      if (!(res.headers.get("content-type") || "").includes("application/json")) throw new Error(_GUARD_CT);
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
 
@@ -3008,13 +3028,13 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
       resultado.style.display = "block";
       status.className = "upload-status ok";
-      status.textContent = "✅ " + archivo.name + " optimizado";
+      status.textContent = "✅ " + src.nombre + " optimizado";
       resultado.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       status.className = "upload-status err";
       status.textContent = "❌ " + (e.message || "No se pudo optimizar el CV");
     }
-    input.value = "";
+    src.reset();
   }
 
   // ════════════ Tracker de aplicaciones (localStorage) ════════════
