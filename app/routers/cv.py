@@ -12,7 +12,7 @@ from app.services.limpiador import limpiar_vacante
 from app.services.generador_cv import generar_cv_adaptado
 from app.services.exportador import exportar_pdf, exportar_docx
 from app.services.adaptador_docx import adaptar_cv_docx
-from app.services.ats_checker import analizar_ats
+from app.services.ats_checker import analizar_ats, analizar_ats_texto
 from app.services.comparador_vacantes import comparar_vacantes
 from app.services.parser_ats import simular_parsing
 from app.services.mejorador_bullets import mejorar_bullets
@@ -45,6 +45,20 @@ async def _leer_upload(archivo: UploadFile) -> bytes:
     if not contenido:
         raise HTTPException(status_code=400, detail="El archivo está vacío.")
     return contenido
+
+
+async def _texto_de_entrada(archivo, cv_texto: str) -> str:
+    """
+    Entrada unificada de CV: usa el texto pegado (prioritario) o, si no hay,
+    extrae el texto del archivo subido. Permite que toda pestaña acepte ambos.
+    """
+    if cv_texto and cv_texto.strip():
+        return cv_texto.strip()
+    if archivo is not None and archivo.filename:
+        contenido = await _leer_upload(archivo)
+        return extraer_texto(contenido, archivo.filename or "cv")
+    raise HTTPException(status_code=400,
+                        detail="Proporciona un CV: sube un archivo (PDF/DOCX) o pega el texto.")
 
 
 @router.post("/adaptar", response_model=AdaptarCVResponse)
@@ -132,19 +146,24 @@ async def adaptar_docx_original_endpoint(
 
 
 @router.post("/analizar-ats")
-async def analizar_ats_endpoint(archivo: UploadFile = File(...)):
+async def analizar_ats_endpoint(archivo: UploadFile = File(None), cv_texto: str = Form("")):
     """
-    Analiza un CV (.docx o .pdf) y devuelve un reporte de compatibilidad ATS
-    SIN necesidad de una vacante: formato, estructura, contacto y contenido.
+    Analiza un CV y devuelve un reporte de compatibilidad ATS sin vacante.
+    Acepta archivo (.docx/.pdf) o texto pegado (cv_texto).
     """
-    contenido = await _leer_upload(archivo)
     try:
+        if cv_texto and cv_texto.strip():
+            return analizar_ats_texto(cv_texto.strip())
+        if archivo is None or not archivo.filename:
+            raise HTTPException(status_code=400,
+                                detail="Proporciona un CV: sube un archivo o pega el texto.")
+        contenido = await _leer_upload(archivo)
         return analizar_ats(contenido, archivo.filename or "archivo")
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=422,
-                            detail="No se pudo analizar el archivo. Sube un DOCX o PDF válido.")
+                            detail="No se pudo analizar el CV. Sube un DOCX/PDF válido o pega el texto.")
 
 
 @router.post("/comparar-vacantes")
@@ -157,58 +176,59 @@ def comparar_vacantes_endpoint(request: CompararVacantesRequest):
 
 
 @router.post("/parsing-ats")
-async def parsing_ats_endpoint(archivo: UploadFile = File(...)):
+async def parsing_ats_endpoint(archivo: UploadFile = File(None), cv_texto: str = Form("")):
     """
-    Simula como un ATS 'lee' el CV: extrae nombre, contacto, experiencia,
-    educacion y skills, y resalta lo que no pudo detectar.
+    Simula cómo un ATS 'lee' el CV. Acepta archivo (.docx/.pdf) o texto pegado.
     """
-    contenido = await _leer_upload(archivo)
+    texto = await _texto_de_entrada(archivo, cv_texto)
     try:
-        texto = extraer_texto(contenido, archivo.filename or "archivo")
         return simular_parsing(texto)
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=422,
-                            detail="No se pudo procesar el archivo. Sube un DOCX o PDF válido.")
+                            detail="No se pudo procesar el CV. Sube un DOCX/PDF válido o pega el texto.")
 
 
 @router.post("/mejorar-bullets")
-async def mejorar_bullets_endpoint(archivo: UploadFile = File(...)):
+async def mejorar_bullets_endpoint(archivo: UploadFile = File(None), cv_texto: str = Form("")):
     """
-    Detecta bullets con verbos debiles en el CV y los reescribe con
-    verbos de accion (por reglas, sin API).
+    Reescribe bullets con verbos débiles. Acepta archivo (.docx/.pdf) o texto pegado.
     """
-    contenido = await _leer_upload(archivo)
+    texto = await _texto_de_entrada(archivo, cv_texto)
     try:
-        texto = extraer_texto(contenido, archivo.filename or "archivo")
         return mejorar_bullets(texto)
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=422,
-                            detail="No se pudo procesar el archivo. Sube un DOCX o PDF válido.")
+                            detail="No se pudo procesar el CV. Sube un DOCX/PDF válido o pega el texto.")
 
 
 @router.post("/optimizar-cv")
 @router.post("/plantilla-ats")  # alias de compatibilidad
 async def optimizar_cv_endpoint(
-    archivo: UploadFile = File(...),
+    archivo: UploadFile = File(None),
+    cv_texto: str = Form(""),
     vacante_texto: str = Form(""),
 ):
     """
     Optimizador ATS completo: reconstruye CUALQUIER CV en una plantilla limpia
     (una columna, secciones estándar, fechas Mes AAAA, orden cronológico inverso)
     y, si se aporta la vacante, inyecta título/keywords/acrónimos/métricas.
-    Devuelve el DOCX en base64, la lista de cambios y el score antes/después.
+    Acepta archivo (.docx/.pdf) o texto pegado. Devuelve DOCX base64, cambios y score.
     """
     import base64
 
-    contenido = await _leer_upload(archivo)
+    texto = await _texto_de_entrada(archivo, cv_texto)
+    es_texto = bool(cv_texto and cv_texto.strip())
     try:
-        texto = extraer_texto(contenido, archivo.filename or "archivo")
         try:
-            score_antes = analizar_ats(contenido, archivo.filename or "cv")["score"]
+            if es_texto:
+                score_antes = analizar_ats_texto(texto)["score"]
+            else:
+                contenido = await _leer_upload(archivo)
+                score_antes = analizar_ats(contenido, archivo.filename or "cv")["score"]
         except Exception:
             score_antes = None
         resultado = optimizar_cv(texto, vacante_texto or "")
@@ -219,7 +239,8 @@ async def optimizar_cv_endpoint(
         raise HTTPException(status_code=422,
                             detail="No se pudo optimizar el CV. Sube un DOCX o PDF válido.")
 
-    nombre = (archivo.filename or "CV").rsplit(".", 1)[0] + "_Optimizado_ATS.docx"
+    base_nombre = (archivo.filename if (archivo and archivo.filename) else "CV")
+    nombre = base_nombre.rsplit(".", 1)[0] + "_Optimizado_ATS.docx"
     return {
         "archivo_base64": base64.b64encode(resultado["docx"]).decode(),
         "nombre": nombre,

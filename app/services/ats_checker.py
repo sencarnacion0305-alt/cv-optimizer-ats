@@ -658,12 +658,15 @@ def analizar_ats(contenido: bytes, nombre_archivo: str) -> Dict:
             status_code=415,
             detail=f"Formato no soportado: .{ext}. Sube un archivo .docx o .pdf")
 
+    return _ensamblar_reporte(categorias, tipo)
+
+
+def _ensamblar_reporte(categorias: List[Dict], tipo: str) -> Dict:
     total_pts = sum(c["puntos"] for c in categorias)
     total_max = sum(c["max_puntos"] for c in categorias)
     score = int(round(total_pts / total_max * 100)) if total_max else 0
     nivel, color = _nivel(score)
 
-    # Resumen accionable: contar problemas
     n_errores = sum(1 for c in categorias for ch in c["checks"] if ch["estado"] == "error")
     n_warn    = sum(1 for c in categorias for ch in c["checks"] if ch["estado"] == "warning")
 
@@ -686,3 +689,28 @@ def analizar_ats(contenido: bytes, nombre_archivo: str) -> Dict:
         "n_advertencias": n_warn,
         "categorias": categorias,
     }
+
+
+def analizar_ats_texto(texto: str) -> Dict:
+    """
+    Analiza un CV pegado como TEXTO PLANO. El análisis de formato profundo (tablas,
+    columnas, fuentes) no aplica sin el archivo, pero sí estructura, contacto,
+    contenido y legibilidad.
+    """
+    lineas = [l.strip() for l in texto.splitlines() if l.strip()]
+    c_est, p_est, m_est = _analizar_estructura(lineas)
+    c_con, p_con, m_con = _analizar_contacto(texto)
+    c_cnt, p_cnt, m_cnt = _analizar_contenido(lineas)
+    c_leg, p_leg, m_leg = _analizar_legibilidad(texto, "cv.txt")
+    nota_fmt = [_check(
+        "warning", "Análisis de formato limitado (texto plano)",
+        "Pegaste el CV como texto, así que no revisamos tablas, columnas, imágenes "
+        "ni fuentes. Para el análisis de formato completo, sube el DOCX.")]
+    categorias = [
+        {"nombre": "Formato",    "icono": "📐", "puntos": 0, "max_puntos": 0, "checks": nota_fmt},
+        {"nombre": "Estructura", "icono": "🗂️", "puntos": p_est, "max_puntos": m_est, "checks": c_est},
+        {"nombre": "Contacto",   "icono": "📇", "puntos": p_con, "max_puntos": m_con, "checks": c_con},
+        {"nombre": "Contenido",  "icono": "✍️", "puntos": p_cnt, "max_puntos": m_cnt, "checks": c_cnt},
+        {"nombre": "Legibilidad ATS", "icono": "🔤", "puntos": p_leg, "max_puntos": m_leg, "checks": c_leg},
+    ]
+    return _ensamblar_reporte(categorias, "texto")

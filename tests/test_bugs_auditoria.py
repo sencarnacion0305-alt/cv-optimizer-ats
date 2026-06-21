@@ -5,6 +5,7 @@ from app.services.adaptador import (
 from app.services.mejorador_bullets import mejorar_bullets
 from app.services.scoring import _dim_formato
 from app.services.limpiador import limpiar_vacante
+from app.services.ats_checker import analizar_ats_texto
 
 CV_EXP = """Juan Perez
 Experiencia
@@ -92,3 +93,17 @@ def test_experiencia_estructurada():
     assert len(est[0]["bullets"]) == 2
     # los logros NO deben quedar como títulos
     assert not any("Construí" in p["titulo"] for p in est)
+
+
+# ── Bug 7: análisis ATS también acepta texto plano ──
+def test_analizar_ats_texto():
+    cv = ("Ana Garcia\nana@mail.com | +34 600 123\nResumen\n"
+          "Ingeniera con 5 años en sistemas distribuidos y liderazgo de equipos.\n"
+          "Experiencia\nEngineer 2020 - Present\n- Construí APIs reduciendo latencia 40%\n"
+          "Educación\nB.Sc 2014 - 2018\nHabilidades\nPython, AWS, Docker")
+    r = analizar_ats_texto(cv)
+    assert r["tipo_archivo"] == "texto"
+    assert len(r["categorias"]) == 5
+    assert 0 <= r["score"] <= 100
+    # contacto y estructura se evalúan aunque no haya archivo
+    assert any(c["nombre"] == "Estructura" and c["puntos"] > 0 for c in r["categorias"])
