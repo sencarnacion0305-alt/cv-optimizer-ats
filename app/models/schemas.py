@@ -39,3 +39,4 @@ class AdaptarCVResponse(BaseModel):
     keywords_soft_skills_faltantes: Optional[List[str]] = None
     contact_info: Optional[dict] = None
     content_signals: Optional[dict] = None
+    requisitos: Optional[dict] = None  # años, seniority, idiomas, educación, certificaciones

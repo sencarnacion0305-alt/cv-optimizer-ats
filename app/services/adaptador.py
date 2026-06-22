@@ -932,6 +932,7 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
     vacante = request.vacante_texto
 
     from app.services.scoring import calcular_score_compuesto
+    from app.services.requisitos import analizar_requisitos
 
     # Limitar a las 30 keywords más relevantes para que el score sea justo
     kw_vacante             = _keywords_de(vacante)[:30]
@@ -945,6 +946,8 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
     desglose = calcular_score_compuesto(cv, vacante, cubiertas, sugeridas,
                                         kw_vacante, titulo_vacante or "")
     score = desglose["total"]
+
+    requisitos = analizar_requisitos(cv, vacante)
 
     resumen                = _mejor_resumen(cv, kw_vacante)
     experiencias           = _extraer_experiencias(cv)
@@ -999,4 +1002,5 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
         keywords_soft_skills_faltantes=desglose.get("soft_faltantes", []),
         contact_info=desglose.get("contact_info"),
         content_signals=desglose.get("content_signals"),
+        requisitos=requisitos,
     )

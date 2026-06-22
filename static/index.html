@@ -1548,6 +1548,8 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
           </div>
         </div>
 
+        <div id="requisitos-box" class="card" style="display:none"></div>
+
         <div class="card">
           <div class="section-title"><i class="ti ti-bulb" aria-hidden="true"></i> Recomendaciones de mejora</div>
           <div class="notas-list" id="notas-list"></div>
@@ -2100,6 +2102,50 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
     box.open = true;
   }
 
+  // ════════════ Requisitos de la vacante (métricas 10-13) ════════════
+  function renderRequisitos(req) {
+    const box = document.getElementById("requisitos-box");
+    if (!box) return;
+    if (!req) { box.style.display = "none"; return; }
+
+    let filas = "";
+    const fila = (ok, label, detalle) => {
+      const estado = ok === true ? "ok" : ok === false ? "error" : "warning";
+      const ico = ok === true ? "circle-check" : ok === false ? "circle-x" : "minus";
+      const col = ok === true ? "var(--green)" : ok === false ? "var(--red)" : "var(--muted)";
+      filas += `<div class="ats-check ${estado}" style="margin-bottom:.4rem">
+          <span class="ico"><i class="ti ti-${ico}" style="color:${col}" aria-hidden="true"></i></span>
+          <div class="body"><div class="t" style="font-size:.85rem">${escapeHtml(label)}</div>
+          <div class="d">${escapeHtml(detalle)}</div></div></div>`;
+    };
+
+    if (req.anios) {
+      const a = req.anios;
+      const det = a.detectados != null ? `${a.detectados} año(s)` : "no detectados";
+      fila(a.cumple, `Experiencia: pide ${a.requeridos}+ años`, `Tu CV: ${det}`);
+    }
+    if (req.seniority) {
+      const s = req.seniority;
+      fila(s.coincide, `Seniority objetivo: ${s.vacante}`,
+        s.cv ? `Tu CV refleja: ${s.cv}` : "No detectamos el nivel en tu CV");
+    }
+    (req.idiomas || []).forEach(i =>
+      fila(i.en_cv, `Idioma: ${i.idioma}`,
+        i.en_cv ? "Mencionado en tu CV" : "No aparece en tu CV"));
+    if (req.educacion) {
+      const e = req.educacion;
+      fila(e.cumple, `Educación: ${e.requerido}`,
+        e.cv ? `Tu CV: ${e.cv}` : "No detectamos formación en tu CV");
+    }
+    (req.certificaciones || []).forEach(c =>
+      fila(c.en_cv, `Certificación: ${c.cert}`,
+        c.en_cv ? "Presente en tu CV" : "Falta en tu CV"));
+
+    if (!filas) { box.style.display = "none"; return; }
+    box.innerHTML = `<div class="section-title" style="margin-bottom:.5rem"><i class="ti ti-checklist" aria-hidden="true"></i> Requisitos de la vacante</div>` + filas;
+    box.style.display = "block";
+  }
+
   function renderResultados(d) {
     // ── Score circular ──────────────────────────────────────────
     const score = d.score_match;
@@ -2180,6 +2226,9 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     // ── Señales de riesgo (Bloque 7) ────────────────────────────
     renderSenales((document.getElementById("cv") || {}).value || "", d);
+
+    // ── Requisitos de la vacante (métricas 10-13) ───────────────
+    renderRequisitos(d.requisitos);
 
     // ── CV adaptado ──────────────────────────────────────────────
     document.getElementById("cv-resumen").innerHTML =
