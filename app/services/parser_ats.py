@@ -216,6 +216,43 @@ def _estimar_experiencia(texto: str, lineas: List[str]) -> Optional[str]:
 # Funcion publica
 # ---------------------------------------------------------------------------
 
+_MES_NUM_P = {"jan": 1, "ene": 1, "feb": 2, "mar": 3, "apr": 4, "abr": 4, "may": 5,
+              "jun": 6, "jul": 7, "aug": 8, "ago": 8, "sep": 9, "set": 9, "oct": 10,
+              "nov": 11, "dec": 12, "dic": 12}
+
+
+def _ym_de_token(tok: str):
+    """Devuelve (año, mes) de un token de fecha, o None."""
+    if re.search(PRESENTE, tok, re.IGNORECASE):
+        now = datetime.now()
+        return (now.year, now.month)
+    m = re.search(ANIO, tok)
+    if not m:
+        return None
+    mm = re.search(r"[a-záéíóú]+", tok.lower())
+    mes = _MES_NUM_P.get(mm.group(0)[:3], 1) if mm else 1
+    return (int(m.group(0)), mes)
+
+
+def _detectar_gaps(lineas: List[str]) -> List[Dict]:
+    """Huecos >= 6 meses entre periodos consecutivos del historial laboral."""
+    periodos = []
+    for linea in lineas:
+        for m in RANGO_RE.finditer(linea):
+            a, b = _ym_de_token(m.group(1)), _ym_de_token(m.group(2))
+            if a and b and b >= a:
+                periodos.append((a, b))
+    periodos = sorted(set(periodos))
+    gaps = []
+    for i in range(len(periodos) - 1):
+        fin, ini_sig = periodos[i][1], periodos[i + 1][0]
+        meses = (ini_sig[0] - fin[0]) * 12 + (ini_sig[1] - fin[1])
+        if meses >= 6:
+            gaps.append({"desde": f"{fin[1]:02d}/{fin[0]}",
+                         "hasta": f"{ini_sig[1]:02d}/{ini_sig[0]}", "meses": meses})
+    return gaps[:4]
+
+
 def simular_parsing(texto: str) -> Dict:
     lineas = [l.strip() for l in texto.splitlines() if l.strip()]
     texto_plano = "\n".join(lineas)
@@ -280,4 +317,5 @@ def simular_parsing(texto: str) -> Dict:
         "educacion": educacion,
         "skills": skills,
         "no_detectados": no_detectados,
+        "gaps": _detectar_gaps(lineas),
     }

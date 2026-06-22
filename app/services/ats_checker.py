@@ -634,6 +634,17 @@ def analizar_ats(contenido: bytes, nombre_archivo: str) -> Dict:
         lineas = [l.strip() for l in texto_pdf.splitlines() if l.strip()]
         texto  = texto_pdf
 
+        # #14 Parseabilidad real: PDF escaneado / sin capa de texto
+        if len(texto_pdf.strip()) < 150:
+            return _ensamblar_reporte([{
+                "nombre": "Parseabilidad", "icono": "📄", "puntos": 0, "max_puntos": 100,
+                "checks": [_check(
+                    "error", "PDF escaneado o sin texto seleccionable",
+                    "Tu PDF parece una imagen escaneada: los ATS NO pueden leer su texto y "
+                    "descartarán tu candidatura. Exporta el CV como PDF con texto "
+                    "seleccionable (no «imprimir como imagen») o, mejor aún, como DOCX.")],
+            }], "pdf")
+
         c_est, p_est, m_est = _analizar_estructura(lineas)
         c_con, p_con, m_con = _analizar_contacto(texto)
         c_cnt, p_cnt, m_cnt = _analizar_contenido(lineas)

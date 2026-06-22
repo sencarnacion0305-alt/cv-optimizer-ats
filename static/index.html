@@ -1712,6 +1712,7 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         <div class="card">
           <div class="section-title"><i class="ti ti-briefcase" aria-hidden="true"></i> Experiencia detectada</div>
           <div id="parsing-puestos"></div>
+          <div id="parsing-gaps" style="margin-top:.8rem"></div>
         </div>
         <div class="card">
           <div class="section-title"><i class="ti ti-school" aria-hidden="true"></i> Educación detectada</div>
@@ -2903,6 +2904,18 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
             <div class="per">${escapeHtml(p.periodo)}</div>
           </div>`).join("")
       : `<p style="color:#DC2626;font-size:.85rem">✗ El ATS no detectó experiencia laboral con fechas claras.</p>`;
+
+    // Gaps en el historial (#15)
+    const gc = document.getElementById("parsing-gaps");
+    if (gc) {
+      const gaps = d.gaps || [];
+      gc.innerHTML = gaps.length
+        ? `<div class="ats-check warning"><span class="ico"><i class="ti ti-calendar-off" aria-hidden="true"></i></span>`
+          + `<div class="body"><div class="t" style="font-size:.84rem">Huecos en el historial laboral</div>`
+          + `<div class="d">${gaps.map(g => `${g.meses} mes(es) entre ${g.desde} y ${g.hasta}`).join("; ")}`
+          + ` — prepárate para explicarlos o añade formación/proyectos del periodo.</div></div></div>`
+        : "";
+    }
 
     // Educación
     const ec = document.getElementById("parsing-educacion");
