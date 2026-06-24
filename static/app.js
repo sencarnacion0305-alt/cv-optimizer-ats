@@ -846,6 +846,13 @@
       cambiarTab("adaptar");
       return;
     }
+    // 15 Métricas: el botón importa también la vacante del estado de "Adaptar"
+    // (no solo el CV) para que recalcule Match/Skills con la job description.
+    if (pestana === "metricas") {
+      const sv = (document.getElementById("vacante").value || "").trim();
+      const dv = document.getElementById("metricas-vacante");
+      if (dv && sv) dv.value = sv;
+    }
     const fn = { ats: analizarATS, parsing: analizarParsing, bullets: analizarBullets, plantilla: optimizarCV, metricas: analizarMetricas }[pestana];
     if (fn) fn({ texto: t });
   }

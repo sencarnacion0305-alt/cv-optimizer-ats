@@ -171,7 +171,7 @@ def test_bullets_metricas_son_placeholders_con_advertencia():
         if m["metrica_agregada"]:
             # marcador editable presente
             assert ("[number]" in m["mejorado"]
-                    or "[estimated %]" in m["mejorado"]
+                    or "[% estimado]" in m["mejorado"]
                     or "[$ amount]" in m["mejorado"])
             # NINGÚN dígito crudo fuera de los corchetes (nada inventado como real)
             sin_placeholder = re.sub(r"\[[^\]]*\]", "", m["mejorado"])

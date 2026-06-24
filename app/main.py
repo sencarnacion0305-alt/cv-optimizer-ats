@@ -48,6 +48,13 @@ async def cabeceras_seguridad(request: Request, call_next):
     proto = request.headers.get("x-forwarded-proto", request.url.scheme)
     if proto == "https":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # Cache: el HTML y los assets de la app (app.js/css) cambian en cada deploy.
+    # StaticFiles solo envía Last-Modified -> el navegador cachea heurísticamente y
+    # sirve versiones viejas tras un deploy. Forzamos revalidación (devuelve 304 si
+    # no cambió, así que sigue siendo barato) para que los despliegues se vean ya.
+    path = request.url.path
+    if path in ("/", "/privacy", "/terms") or path.endswith((".html", ".js", ".css")):
+        response.headers["Cache-Control"] = "no-cache"
     return response
 
 @app.exception_handler(Exception)

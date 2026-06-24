@@ -77,7 +77,7 @@ METRICA_RE = re.compile(r"\d+\s*%|\d[\d,.]*\s*\+|\b\d{2,}\b|\$\s*\d")
 # ---------------------------------------------------------------------------
 # Sanitizado a PLACEHOLDERS: nunca presentar cifras inventadas como reales.
 # Convierte cualquier número de las plantillas en un marcador editable.
-#   ~30% / 95%      -> [estimated %]
+#   ~30% / 95%      -> [% estimado]
 #   ~$50K / $200K   -> [$ amount]
 #   100+ / 1M+ / ~5 -> [number]
 # ---------------------------------------------------------------------------
@@ -87,14 +87,14 @@ _NUM_MONEY = re.compile(r"~?\$\s*\d[\d.,]*(?:\s*[KkMmBb])?")
 _NUM_PCT   = re.compile(r"~?\d[\d.,]*(?:\s*[KkMmBb])?\s*%")
 _NUM_PLAIN = re.compile(r"~?\d[\d.,]*(?:\s*[KkMmBb])?\+?")
 
-ADVERTENCIA_METRICAS = ("Reemplaza los valores estimados ([number], [estimated %]) "
+ADVERTENCIA_METRICAS = ("Reemplaza los valores estimados ([number], [% estimado]) "
                         "con cifras reales antes de enviar tu CV.")
 
 
 def _a_placeholder(s: str) -> str:
     """Sustituye todo número concreto por un marcador editable."""
     s = _NUM_MONEY.sub("[$ amount]", s)
-    s = _NUM_PCT.sub("[estimated %]", s)
+    s = _NUM_PCT.sub("[% estimado]", s)
     s = _NUM_PLAIN.sub("[number]", s)
     return s
 

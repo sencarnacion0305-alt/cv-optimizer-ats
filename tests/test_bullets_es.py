@@ -35,7 +35,7 @@ def test_placeholder_no_pega_palabra():
 
 
 def test_placeholders_se_conservan():
-    assert _a_placeholder("en ~25%") == "en [estimated %]"
+    assert _a_placeholder("en ~25%") == "en [% estimado]"
     assert _a_placeholder("de ~$50K") == "de [$ amount]"
 
 
