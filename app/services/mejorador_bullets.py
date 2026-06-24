@@ -81,9 +81,11 @@ METRICA_RE = re.compile(r"\d+\s*%|\d[\d,.]*\s*\+|\b\d{2,}\b|\$\s*\d")
 #   ~$50K / $200K   -> [$ amount]
 #   100+ / 1M+ / ~5 -> [number]
 # ---------------------------------------------------------------------------
-_NUM_MONEY = re.compile(r"~?\$\s*\d[\d.,]*\s*[KkMmBb]?")
-_NUM_PCT   = re.compile(r"~?\d[\d.,]*\s*[KkMmBb]?\s*%")
-_NUM_PLAIN = re.compile(r"~?\d[\d.,]*\s*[KkMmBb]?\+?")
+# El sufijo K/M/B se agrupa con su espacio para NO consumir el espacio previo a la
+# siguiente palabra (evita "[number]horas" cuando la plantilla dice "~15 horas").
+_NUM_MONEY = re.compile(r"~?\$\s*\d[\d.,]*(?:\s*[KkMmBb])?")
+_NUM_PCT   = re.compile(r"~?\d[\d.,]*(?:\s*[KkMmBb])?\s*%")
+_NUM_PLAIN = re.compile(r"~?\d[\d.,]*(?:\s*[KkMmBb])?\+?")
 
 ADVERTENCIA_METRICAS = ("Reemplaza los valores estimados ([number], [estimated %]) "
                         "con cifras reales antes de enviar tu CV.")
@@ -118,25 +120,29 @@ _CATEGORIAS_METRICA = [
 ]
 
 _PLANTILLAS_METRICA = {
-    "incident":   ["cutting average response time by ~30%", "across ~40 incidents per quarter",
-                   "reducing MTTR by ~25%"],
-    "threat":     ["identifying ~15 active threats", "improving threat coverage by ~35%"],
-    "alert":      ["triaging 100+ alerts per week", "monitoring ~500 events daily",
-                   "raising detection accuracy to ~95%"],
-    "vuln":       ["remediating 50+ vulnerabilities", "reducing exposure windows by ~40%",
-                   "scanning ~200 assets"],
-    "phishing":   ["blocking ~95% of malicious emails", "neutralizing ~20 campaigns"],
-    "team":       ["leading a team of ~5", "mentoring ~4 junior analysts",
-                   "coordinating ~6 stakeholders"],
-    "report":     ["improving reporting visibility for 10+ stakeholders",
-                   "cutting reporting time by ~50%"],
-    "ticket":     ["resolving 200+ tickets per month", "sustaining ~98% SLA compliance"],
-    "audit":      ["improving audit readiness by ~40%", "aligning with ~3 frameworks"],
-    "automation": ["saving ~15 hours of manual work weekly", "automating ~80% of the workflow"],
-    "cloud":      ["across 50+ servers", "covering ~10 cloud workloads"],
-    "firewall":   ["hardening ~30 network devices", "reducing attack surface by ~35%"],
-    "default":    ["improving operational efficiency by ~25%", "supporting 1M+ users",
-                   "achieving ~99% uptime"],
+    "incident":   ["reduciendo el tiempo medio de respuesta en ~30%",
+                   "en ~40 incidentes por trimestre", "reduciendo el MTTR en ~25%"],
+    "threat":     ["identificando ~15 amenazas activas",
+                   "mejorando la cobertura de amenazas en ~35%"],
+    "alert":      ["clasificando 100+ alertas por semana", "monitorizando ~500 eventos al día",
+                   "elevando la precisión de detección al ~95%"],
+    "vuln":       ["remediando 50+ vulnerabilidades",
+                   "reduciendo las ventanas de exposición en ~40%", "escaneando ~200 activos"],
+    "phishing":   ["bloqueando el ~95% de correos maliciosos", "neutralizando ~20 campañas"],
+    "team":       ["liderando un equipo de ~5 personas", "formando a ~4 analistas junior",
+                   "coordinando ~6 interlocutores"],
+    "report":     ["mejorando la visibilidad de reportes para 10+ interlocutores",
+                   "reduciendo el tiempo de reporte en ~50%"],
+    "ticket":     ["resolviendo 200+ tickets al mes", "manteniendo un ~98% de cumplimiento de SLA"],
+    "audit":      ["mejorando la preparación para auditorías en ~40%",
+                   "alineándose con ~3 marcos de referencia"],
+    "automation": ["ahorrando ~15 horas de trabajo manual a la semana",
+                   "automatizando el ~80% del flujo de trabajo"],
+    "cloud":      ["en 50+ servidores", "cubriendo ~10 cargas de trabajo en la nube"],
+    "firewall":   ["fortaleciendo ~30 dispositivos de red",
+                   "reduciendo la superficie de ataque en ~35%"],
+    "default":    ["mejorando la eficiencia operativa en ~25%", "dando servicio a 1M+ usuarios",
+                   "logrando un ~99% de disponibilidad"],
 }
 
 # ── Métricas por SECTOR ───────────────────────────────────────────────────
@@ -164,23 +170,24 @@ _SECTOR_PATRONES = [
 ]
 
 _PLANTILLAS_SECTOR = {
-    "marketing":   ["increasing engagement by ~30%", "growing reach to ~50K users",
-                    "boosting conversion by ~20%", "managing a ~$50K budget",
-                    "improving ROI by ~25%", "across ~10 campaigns"],
-    "ventas":      ["exceeding quota by ~20%", "closing ~30 deals per quarter",
-                    "growing the portfolio by ~25%", "generating ~$200K in revenue"],
-    "finanzas":    ["managing a ~$1M budget", "reducing costs by ~15%",
-                    "improving accuracy to ~99%", "across ~200 monthly transactions"],
-    "rrhh":        ["reducing time-to-hire by ~30%", "onboarding ~50 new hires",
-                    "improving retention by ~15%", "across ~120 employees"],
-    "salud":       ["serving ~200 patients monthly", "improving outcomes by ~20%",
-                    "maintaining ~98% compliance"],
-    "educacion":   ["teaching ~120 students", "improving pass rates by ~15%",
-                    "across ~6 courses"],
-    "operaciones": ["improving throughput by ~20%", "cutting delivery time by ~25%",
-                    "across ~15 processes", "reducing costs by ~15%"],
-    "general":     ["improving efficiency by ~25%", "saving ~10 hours weekly",
-                    "supporting ~1000 users", "reducing costs by ~15%"],
+    "marketing":   ["aumentando el engagement en ~30%", "ampliando el alcance a ~50K usuarios",
+                    "mejorando la conversión en ~20%", "gestionando un presupuesto de ~$50K",
+                    "mejorando el ROI en ~25%", "en ~10 campañas"],
+    "ventas":      ["superando la cuota en ~20%", "cerrando ~30 acuerdos por trimestre",
+                    "haciendo crecer la cartera en ~25%", "generando ~$200K en ingresos"],
+    "finanzas":    ["gestionando un presupuesto de ~$1M", "reduciendo costos en ~15%",
+                    "mejorando la precisión al ~99%", "en ~200 transacciones mensuales"],
+    "rrhh":        ["reduciendo el tiempo de contratación en ~30%",
+                    "incorporando a ~50 nuevas personas", "mejorando la retención en ~15%",
+                    "en una plantilla de ~120 personas"],
+    "salud":       ["atendiendo a ~200 pacientes al mes", "mejorando los resultados en ~20%",
+                    "manteniendo un ~98% de cumplimiento"],
+    "educacion":   ["enseñando a ~120 estudiantes", "mejorando las tasas de aprobación en ~15%",
+                    "en ~6 cursos"],
+    "operaciones": ["mejorando el rendimiento en ~20%", "reduciendo el tiempo de entrega en ~25%",
+                    "en ~15 procesos", "reduciendo costos en ~15%"],
+    "general":     ["mejorando la eficiencia en ~25%", "ahorrando ~10 horas a la semana",
+                    "dando servicio a ~1000 usuarios", "reduciendo costos en ~15%"],
 }
 
 

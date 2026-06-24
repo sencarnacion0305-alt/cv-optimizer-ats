@@ -814,6 +814,12 @@
       const src = document.getElementById("cv");
       if (dst && src && !dst.value.trim() && src.value.trim()) dst.value = src.value;
     }
+    // 15 Métricas: heredar la descripción de la vacante pegada en "Adaptar"
+    if (tab === "metricas") {
+      const dv = document.getElementById("metricas-vacante");
+      const sv = document.getElementById("vacante");
+      if (dv && sv && !dv.value.trim() && sv.value.trim()) dv.value = sv.value;
+    }
   }
 
   // ── Análisis ATS standalone (sin vacante) ─────────────────────
@@ -889,8 +895,15 @@
   async function analizarMetricas(fuente) {
     const src = _fuenteCV(fuente);
     if (!src) return;
-    const vac = (document.getElementById("metricas-vacante").value || "").trim();
-    if (vac) src.form.append("vacante_texto", vac);
+    // Lee la vacante del campo propio o, si está vacío, del estado compartido
+    // ("Adaptar a vacante"), para no perder el match cuando se usa "usar CV pegado".
+    const vac = (document.getElementById("metricas-vacante").value || "").trim()
+             || (document.getElementById("vacante").value || "").trim();
+    if (vac) {
+      src.form.append("vacante_texto", vac);
+      const dv = document.getElementById("metricas-vacante");
+      if (dv && !dv.value.trim()) dv.value = vac;   // reflejarla en el campo
+    }
     const status    = document.getElementById("metricas-file-status");
     const resultado = document.getElementById("metricas-resultado");
     status.className = "upload-status";
