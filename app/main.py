@@ -11,10 +11,15 @@ app = FastAPI(
 )
 
 # Content-Security-Policy: permite el propio origen + los CDN que usa el frontend
-# (Google Fonts y Tabler Icons). 'unsafe-inline' es necesario por el CSS/JS embebido.
+# (Google Fonts y Tabler Icons).
+#  - script-src: SIN 'unsafe-inline'. El JS vive en /static/app.js ('self') y los
+#    handlers se enlazan con addEventListener (delegación por data-*), no con onclick.
+#  - style-src: conserva 'unsafe-inline' porque el HTML usa ~170 atributos style=""
+#    inline; migrarlos a clases sería un refactor mayor y la inyección de estilos es
+#    de bajo riesgo comparada con la de scripts.
 _CSP = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "script-src 'self'; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
     "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
     "img-src 'self' data:; "
