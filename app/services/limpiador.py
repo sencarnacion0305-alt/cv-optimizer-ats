@@ -11,7 +11,7 @@ Sin dependencias externas — solo stdlib.
 """
 
 import re
-from typing import List, Tuple
+from typing import List
 
 # ---------------------------------------------------------------------------
 # Palabras que indican una sección RELEVANTE (requisitos, tareas, perfil)
@@ -93,6 +93,31 @@ LINEAS_RUIDO = re.compile(
 )
 
 # ---------------------------------------------------------------------------
+# Marcadores de sección (pueden aparecer INLINE, no solo como encabezado)
+# ---------------------------------------------------------------------------
+
+_MARC_RUIDO = re.compile(
+    r"(we\s+offer|what\s+we\s+offer|\bbenefits?\b|\bperks?\b|about\s+us|"
+    r"about\s+the\s+company|our\s+culture|company\s+culture|our\s+values|"
+    r"why\s+(?:join|work)|equal\s+opportunit|\bcompensation\b|salary\s+range|"
+    r"\bbeneficios?\b|ofrecemos|te\s+ofrecemos|qu[eé]\s+ofrecemos|"
+    r"sobre\s+nosotros|sobre\s+la\s+empresa|acerca\s+de\s+nosotros|"
+    r"nuestra\s+cultura|nuestros\s+valores|por\s+qu[eé]\s+trabajar)",
+    re.IGNORECASE)
+
+_MARC_REL = re.compile(
+    r"(requirements?\b|responsibilit\w*|qualifications?\b|what\s+you.ll\s+do|"
+    r"who\s+you\s+are|must.have|nice.to.have|key\s+responsibilit\w*|"
+    r"requisitos?\b|requerimientos?\b|responsabilidades?\b|funciones?\b|"
+    r"tareas?\b|cualificaciones?\b|lo\s+que\s+har[aá]s|\bskills?\b|"
+    r"habilidades\b|conocimientos\b|\bperfil\b|experience\s+required|"
+    r"tech\s+stack|stack\s+t[eé]cnico)",
+    re.IGNORECASE)
+
+_MARC_TODOS = re.compile(rf"({_MARC_RUIDO.pattern}|{_MARC_REL.pattern})", re.IGNORECASE)
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -141,74 +166,96 @@ def _clasificar_titulo(titulo: str) -> str:
 # Función principal
 # ---------------------------------------------------------------------------
 
+def _segmentar(texto: str) -> List[str]:
+    """
+    Parte el texto en segmentos analizables, robusto a vacantes escritas en
+    una sola línea: inserta un salto antes de cada marcador de sección conocido
+    (relevante o ruido) y luego divide por oraciones. Así "…snacks. Requirements:
+    Python…" se separa en un segmento de ruido y uno de requisitos.
+    """
+    # 1. Quitar líneas de interfaz de portales (botones, contadores)
+    base = "\n".join(l for l in texto.splitlines() if not LINEA_UI_PORTAL.match(l))
+    # 2. Salto de línea antes de cada marcador de sección (aunque esté inline)
+    base = _MARC_TODOS.sub(lambda m: "\n" + m.group(0), base)
+    # 3. Cada línea, además, se parte por oraciones (. ; •) para aislar ruido
+    segmentos: List[str] = []
+    for linea in base.splitlines():
+        for parte in re.split(r"(?<=[.;])\s+|\s+[•·]\s+", linea):
+            p = (parte or "").strip(" \t-–—•·|")
+            if p:
+                segmentos.append(p)
+    return segmentos
+
+
 def limpiar_vacante(texto: str) -> str:
     """
     Recibe la descripción completa de una vacante y devuelve solo
     la información relevante para el análisis ATS.
+
+    Rastrea la sección actual (relevante / ruido) a medida que avanza, de modo
+    que las líneas que cuelgan de un encabezado heredan su clasificación. Nunca
+    devuelve vacío si la entrada contiene requisitos o responsabilidades.
     """
-    # Pre-filtro: quitar lineas de interfaz de portales (botones, contadores)
-    lineas = [l for l in texto.splitlines() if not LINEA_UI_PORTAL.match(l)]
-    bloques: List[Tuple[str, List[str]]] = []  # (clasificacion, lineas)
+    if not texto or not texto.strip():
+        return ""
 
-    seccion_actual: str = "neutro"
-    contenido_actual: List[str] = []
+    seccion = "neutro"          # neutro | rel | ruido
+    relevantes: List[str] = []  # segmentos bajo requisitos/responsabilidades…
+    neutros: List[str] = []     # preámbulo / título del puesto
 
-    for linea in lineas:
-        if _es_titulo(linea):
-            # Guardar bloque anterior
-            if contenido_actual:
-                bloques.append((seccion_actual, contenido_actual))
-            seccion_actual = _clasificar_titulo(linea)
-            contenido_actual = [linea]
-        else:
-            contenido_actual.append(linea)
+    for seg in _segmentar(texto):
+        tiene_rel = bool(_MARC_REL.search(seg))
+        tiene_ruido = bool(_MARC_RUIDO.search(seg))
 
-    if contenido_actual:
-        bloques.append((seccion_actual, contenido_actual))
-
-    # ── Seleccionar bloques relevantes ───────────────────────────────
-    partes_finales: List[str] = []
-
-    for clasificacion, lineas_bloque in bloques:
-        if clasificacion == "ruido":
+        # El marcador que ABRE el segmento manda (tras la segmentación quedan al
+        # inicio). Si coexisten en el mismo segmento, gana el relevante.
+        if tiene_rel:
+            seccion = "rel"
+            relevantes.append(seg)
+            continue
+        if tiene_ruido:
+            seccion = "ruido"
             continue
 
-        # Filtrar líneas de ruido dentro de bloques neutros/relevantes
-        lineas_limpias = [
-            l for l in lineas_bloque
-            if not LINEAS_RUIDO.search(l)
-        ]
-
-        texto_bloque = "\n".join(lineas_limpias).strip()
-        if not texto_bloque:
+        # Segmento sin marcador: hereda la sección actual.
+        if seccion == "ruido" or LINEAS_RUIDO.search(seg):
             continue
+        if seccion == "rel":
+            relevantes.append(seg)
+        else:  # preámbulo (título del puesto, intro breve)
+            neutros.append(seg)
 
-        # Para bloques neutros al inicio (introducción), conservar solo si
-        # son cortos (probablemente el título del puesto o intro breve)
-        if clasificacion == "neutro":
-            palabras = len(texto_bloque.split())
-            # Intro larga sin sección relevante = probablemente marketing de empresa
-            if palabras > 60 and not TITULOS_RELEVANTES.search(texto_bloque):
-                continue
+    partes: List[str] = []
+    # Conservar el preámbulo solo si es breve (suele ser el título del puesto);
+    # un preámbulo largo sin marcador es marketing de empresa.
+    preambulo = "\n".join(neutros).strip()
+    if preambulo and len(preambulo.split()) <= 40:
+        partes.append(preambulo)
+    partes.extend(relevantes)
 
-        partes_finales.append(texto_bloque)
+    resultado = "\n".join(p for p in partes if p).strip()
 
-    resultado = "\n\n".join(partes_finales).strip()
-
-    # Si el filtro fue demasiado agresivo (eliminó casi todo), devolver original limpio
-    if len(resultado.split()) < 30:
+    # Garantía anti-vacío: si no se reconoció ninguna sección pero hay texto,
+    # devolver el texto sin las líneas obvias de ruido/beneficios.
+    if not resultado:
         resultado = _fallback(texto)
+    if not resultado.strip():
+        resultado = texto.strip()
 
     return resultado
 
 
 def _fallback(texto: str) -> str:
     """
-    Limpieza mínima cuando el filtrado elimina demasiado:
-    quita líneas claramente de beneficios/legal y devuelve el resto.
+    Limpieza mínima cuando no se reconoce ninguna sección: descarta segmentos
+    que son claramente ruido (beneficios/legal/empresa) y conserva el resto.
+    Opera por segmentos (no por líneas) para no borrar requisitos que comparten
+    línea con texto de ruido.
     """
-    lineas = [
-        l for l in texto.splitlines()
-        if not LINEAS_RUIDO.search(l) and not TITULOS_RUIDO.search(l)
+    conservados = [
+        s for s in _segmentar(texto)
+        if not _MARC_RUIDO.match(s)
+        and not LINEAS_RUIDO.search(s)
+        and not TITULOS_RUIDO.match(s)
     ]
-    return "\n".join(lineas).strip()
+    return "\n".join(conservados).strip()

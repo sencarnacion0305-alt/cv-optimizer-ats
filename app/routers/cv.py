@@ -220,31 +220,50 @@ async def optimizar_cv_endpoint(
     """
     import base64
 
-    texto = await _texto_de_entrada(archivo, cv_texto)
+    # Leer la entrada UNA sola vez: el archivo se consume al leerlo, así que
+    # guardamos sus bytes para reutilizarlos en el score "antes" (si lo releyéramos
+    # vendría vacío y score_antes quedaría siempre en null para entrada por archivo).
     es_texto = bool(cv_texto and cv_texto.strip())
+    contenido_archivo: bytes = b""
+    if es_texto:
+        texto = cv_texto.strip()
+    elif archivo is not None and archivo.filename:
+        contenido_archivo = await _leer_upload(archivo)
+        texto = extraer_texto(contenido_archivo, archivo.filename or "cv")
+    else:
+        raise HTTPException(status_code=400,
+                            detail="Proporciona un CV: sube un archivo (PDF/DOCX) o pega el texto.")
+
     try:
+        # Score ANTES sobre el contenido original (mismo origen que la entrada).
         try:
             if es_texto:
                 score_antes = analizar_ats_texto(texto)["score"]
             else:
-                contenido = await _leer_upload(archivo)
-                score_antes = analizar_ats(contenido, archivo.filename or "cv")["score"]
+                score_antes = analizar_ats(contenido_archivo, archivo.filename or "cv")["score"]
+            score_antes_nota = None
         except Exception:
             score_antes = None
+            score_antes_nota = ("No se pudo calcular el score original; se muestra "
+                                "únicamente el del CV ya optimizado.")
+
         resultado = optimizar_cv(texto, vacante_texto or "")
         score_despues = analizar_ats(resultado["docx"], "CV_Optimizado_ATS.docx")["score"]
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=422,
-                            detail="No se pudo optimizar el CV. Sube un DOCX o PDF válido.")
+        raise HTTPException(
+            status_code=422,
+            detail="No se pudo optimizar el CV. Sube un DOCX/PDF válido o pega el texto.")
 
     base_nombre = (archivo.filename if (archivo and archivo.filename) else "CV")
     nombre = base_nombre.rsplit(".", 1)[0] + "_Optimizado_ATS.docx"
     return {
         "archivo_base64": base64.b64encode(resultado["docx"]).decode(),
         "nombre": nombre,
+        "formato_entrada": "texto" if es_texto else "archivo",
         "score_antes": score_antes,
+        "score_antes_nota": score_antes_nota,
         "score_despues": score_despues,
         "cambios": resultado["cambios"],
     }

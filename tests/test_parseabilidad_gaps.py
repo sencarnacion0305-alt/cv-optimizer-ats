@@ -1,6 +1,4 @@
 """Métricas 14 (parseabilidad PDF) y 15 (gaps en el historial)."""
-import io
-
 from app.services.ats_checker import analizar_ats
 from app.services.parser_ats import _detectar_gaps
 

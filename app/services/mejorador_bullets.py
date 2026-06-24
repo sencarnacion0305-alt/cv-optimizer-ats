@@ -75,6 +75,28 @@ GERUNDIOS = {
 METRICA_RE = re.compile(r"\d+\s*%|\d[\d,.]*\s*\+|\b\d{2,}\b|\$\s*\d")
 
 # ---------------------------------------------------------------------------
+# Sanitizado a PLACEHOLDERS: nunca presentar cifras inventadas como reales.
+# Convierte cualquier número de las plantillas en un marcador editable.
+#   ~30% / 95%      -> [estimated %]
+#   ~$50K / $200K   -> [$ amount]
+#   100+ / 1M+ / ~5 -> [number]
+# ---------------------------------------------------------------------------
+_NUM_MONEY = re.compile(r"~?\$\s*\d[\d.,]*\s*[KkMmBb]?")
+_NUM_PCT   = re.compile(r"~?\d[\d.,]*\s*[KkMmBb]?\s*%")
+_NUM_PLAIN = re.compile(r"~?\d[\d.,]*\s*[KkMmBb]?\+?")
+
+ADVERTENCIA_METRICAS = ("Reemplaza los valores estimados ([number], [estimated %]) "
+                        "con cifras reales antes de enviar tu CV.")
+
+
+def _a_placeholder(s: str) -> str:
+    """Sustituye todo número concreto por un marcador editable."""
+    s = _NUM_MONEY.sub("[$ amount]", s)
+    s = _NUM_PCT.sub("[estimated %]", s)
+    s = _NUM_PLAIN.sub("[number]", s)
+    return s
+
+# ---------------------------------------------------------------------------
 # Generador de metricas contextuales (placeholders editables marcados con ~)
 # ---------------------------------------------------------------------------
 
@@ -199,9 +221,9 @@ def sufijo_metrica(bullet: str, contadores: Dict[str, int], sector: str = "tech"
         palabras = re.findall(r"[a-z]{5,}", cand.lower())
         if not any(w in low for w in palabras):  # evita repetir palabras del bullet
             contadores[cat] = i + k + 1
-            return cand
+            return _a_placeholder(cand)
     contadores[cat] = i + 1
-    return opciones[i % len(opciones)]
+    return _a_placeholder(opciones[i % len(opciones)])
 
 
 def agregar_metrica_a_bullet(bullet: str, contadores: Dict[str, int],
@@ -330,9 +352,10 @@ def mejorar_bullets(cv_texto: str) -> Dict:
         if n_verbos:
             partes.append(f"{n_verbos} con verbos débiles reescritos")
         if n_metricas:
-            partes.append(f"{n_metricas} con métricas de impacto añadidas")
-        resumen = ("Mejoramos " + " y ".join(partes) +
-                   ". Ajusta los números marcados con « ~ » a tus cifras reales.")
+            partes.append(f"{n_metricas} con métricas de impacto sugeridas")
+        resumen = "Mejoramos " + " y ".join(partes) + "."
+        if n_metricas:
+            resumen += " " + ADVERTENCIA_METRICAS
     else:
         resumen = ("Tus bullets ya usan verbos de acción y métricas. ¡Excelente! "
                    "No hay cambios que sugerir.")
@@ -343,4 +366,6 @@ def mejorar_bullets(cv_texto: str) -> Dict:
         "n_metricas": n_metricas,
         "mejoras": mejoras,
         "resumen": resumen,
+        # Advertencia explícita: las métricas sugeridas son marcadores, no datos reales.
+        "advertencia": ADVERTENCIA_METRICAS if n_metricas else "",
     }

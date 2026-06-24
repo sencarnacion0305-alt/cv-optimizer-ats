@@ -449,6 +449,28 @@ _LIMPIEZA_TITULO = re.compile(
     r"(for\s+)?(an?\s+|una?\s+|un\s+)?",
     re.IGNORECASE)
 
+# Cargos conocidos (EN y ES). Permite detectar el título aunque venga en una
+# línea larga junto a skills: "Backend Developer Python FastAPI Docker …".
+_SEN = r"(?:senior|sr\.?|junior|jr\.?|lead|principal|staff|mid|semi[\s-]?senior|ssr)"
+_DOM_EN = (r"(?:back[\s-]?end|front[\s-]?end|full[\s-]?stack|data|software|web|mobile|"
+           r"cloud|dev\s?ops|qa|q\.a\.|security|machine\s+learning|ml|ai|product|"
+           r"project|business|systems?|network|database|platform|site\s+reliability)")
+_ROL_EN = (r"(?:developer|engineer|analyst|manager|specialist|coordinator|architect|"
+           r"consultant|administrator|scientist|programmer|designer|director)")
+_ROL_ES = (r"(?:desarrollador(?:a)?|ingenier[oa]|analista|gerente|especialista|"
+           r"coordinador(?:a)?|arquitect[oa]|consultor(?:a)?|administrador(?:a)?|"
+           r"cient[ií]fic[oa]|programador(?:a)?|dise[nñ]ador(?:a)?|responsable|jefe)")
+_DOM_ES = (r"(?:back[\s-]?end|front[\s-]?end|full[\s-]?stack|datos|software|web|"
+           r"sistemas?|proyectos?|producto|seguridad|dev\s?ops|qa|cloud|nube|"
+           r"m[oó]viles?|redes?|calidad)")
+_TITULO_CARGO = re.compile(
+    r"\b("
+    rf"(?:{_SEN}\s+)?(?:{_DOM_EN}\s+)?{_ROL_EN}"                      # EN: Backend Developer
+    r"|"
+    rf"{_ROL_ES}(?:\s+(?:de\s+|en\s+)?{_DOM_ES})?(?:\s+{_SEN})?"      # ES: Ingeniero de Software
+    r")\b",
+    re.IGNORECASE)
+
 
 def _detectar_titulo_vacante(vacante: str) -> str:
     """
@@ -479,7 +501,17 @@ def _detectar_titulo_vacante(vacante: str) -> str:
             if _PALABRAS_TITULO.search(cand) and 1 <= len(cand.split()) <= 6:
                 return cand
 
-    # 3. Primera linea corta que parezca un cargo
+    # 3. Cargo conocido cerca del inicio, aunque venga junto a skills en la
+    #    misma línea ("Backend Developer Python FastAPI …" / "Desarrollador Backend …").
+    cabecera = re.sub(r"\s+", " ", " ".join(lineas[:3]))[:160]
+    m = _TITULO_CARGO.search(cabecera)
+    if m:
+        cand = m.group(1).strip(" .-")
+        # Exigir ≥2 palabras para no capturar roles sueltos ambiguos ("Developer").
+        if len(cand.split()) >= 2:
+            return cand
+
+    # 4. Primera linea corta que parezca un cargo
     for l in lineas[:5]:
         limpia = _LIMPIEZA_TITULO.sub("", l).strip(" .-")
         if _PALABRAS_TITULO.search(limpia) and len(limpia) <= 60 and len(limpia.split()) <= 8:
@@ -497,11 +529,11 @@ def _titulo_en_cv(titulo: str, cv_texto: str) -> bool:
     Tolera variaciones de seniority (Senior/Junior/Lead...).
     """
     if not titulo:
-        return True
+        return False
     cv_n = _normalizar(cv_texto)
     titulo_n = re.sub(r"\s+", " ", _normalizar(titulo)).strip()
     if not titulo_n:
-        return True
+        return False
     # 1. Frase exacta presente (como frase completa, no substring)
     if _kw_presente(cv_n, titulo_n):
         return True
@@ -938,9 +970,9 @@ def adaptar_cv(request: AdaptarCVRequest) -> AdaptarCVResponse:
     kw_vacante             = _keywords_de(vacante)[:30]
     cubiertas, sugeridas   = _analizar_cobertura(kw_vacante, cv)
 
-    # Job title match
+    # Job title match — sin cargo detectado en la vacante NO se marca cubierto.
     titulo_vacante = _detectar_titulo_vacante(vacante)
-    titulo_cubierto = _titulo_en_cv(titulo_vacante, cv)
+    titulo_cubierto = bool(titulo_vacante) and _titulo_en_cv(titulo_vacante, cv)
 
     # Score compuesto de 5 dimensiones (keywords, formato, estructura, contenido, cargo)
     desglose = calcular_score_compuesto(cv, vacante, cubiertas, sugeridas,

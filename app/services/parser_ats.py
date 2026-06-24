@@ -27,12 +27,21 @@ PHONE_RE    = re.compile(r"(?:\+?\d[\d\s().\-]{7,}\d)")
 LINKEDIN_RE = re.compile(r"(?:linkedin\.com/in/[\w\-%]+)", re.IGNORECASE)
 UBIC_RE     = re.compile(
     r"(?:location|ubicaci[oó]n|address|direcci[oó]n)\s*[:\-]\s*(.+)", re.IGNORECASE)
+# "Ciudad, ST" / "Ciudad, País" sin etiqueta (típico en la línea de contacto):
+# "New York, NY", "San Francisco, CA", "Madrid, España", "Lima, Perú".
+CIUDAD_RE   = re.compile(
+    r"\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ.]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ.]+){0,2}),\s*"
+    r"([A-Z]{2}|[A-ZÁÉÍÓÚ][a-záéíóúñ]{2,})\b")
 
-MESES = (r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|"
-         r"ene|abr|ago|dic|enero|febrero|marzo|abril|mayo|junio|julio|"
-         r"agosto|septiembre|setiembre|octubre|noviembre|diciembre)")
+# Nombres de mes completos PRIMERO (para que "January 2021" no caiga a solo "2021").
+MESES = (r"(?:january|february|march|april|june|july|august|september|october|"
+         r"november|december|"
+         r"enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|"
+         r"setiembre|octubre|noviembre|diciembre|"
+         r"jan|feb|mar|apr|may|jun|jul|aug|sept|sep|oct|nov|dec|"
+         r"ene|abr|ago|dic)")
 ANIO   = r"(?:19|20)\d{2}"
-PRESENTE = r"(?:present|presente|actual|current|now|hoy|ongoing|to\s*date)"
+PRESENTE = r"(?:actualidad|presente|present|actual|currently|current|now|hoy|ongoing|to\s*date)"
 
 # Un "token de fecha": mes opcional + anio, o la palabra 'presente'
 TOKEN_FECHA = rf"(?:{MESES}\.?\s+)?{ANIO}|{PRESENTE}"
@@ -96,25 +105,58 @@ def _es_academico(titulo: str, empresa: str) -> bool:
     return False
 
 
+def _es_bullet(t: str) -> bool:
+    """Línea que es una responsabilidad/logro (viñeta o frase), no un dato corto."""
+    t = t.strip()
+    if re.match(r"^[\-\*•·▪◦]", t):
+        return True
+    # Frase larga o terminada en punto => responsabilidad, no nombre de empresa
+    if len(t) > 55 or t.endswith("."):
+        return True
+    return False
+
+
+def _split_titulo_empresa(cabecera: str):
+    """
+    Separa "Cargo - Empresa", "Cargo | Empresa", "Cargo at Empresa",
+    "Cargo en Empresa" en (titulo, empresa). Si no hay separador, empresa="".
+    No parte guiones internos de palabras (Co-Founder) porque exige espacios.
+    """
+    cab = cabecera.strip(" \t|-–—:·,")
+    partes = re.split(r"\s+[-–—|]\s+|\s+(?:at|en)\s+", cab, maxsplit=1)
+    titulo = partes[0].strip(" \t|-–—:·,")
+    empresa = partes[1].strip(" \t|-–—:·,") if len(partes) > 1 else ""
+    return titulo, empresa
+
+
 def _detectar_bloques_fechados(lineas: List[str]) -> List[Dict]:
     """
     Detecta bloques con rango de fechas (experiencia o educacion).
-    El texto antes del rango es el titulo; la linea siguiente, la organizacion.
+    El texto antes del rango es el titulo (y, tras un separador, la empresa);
+    si la empresa no viene en la misma línea, se busca en la siguiente línea
+    que NO sea una viñeta/responsabilidad ni datos de contacto.
     """
     bloques = []
     for i, linea in enumerate(lineas):
         m = RANGO_RE.search(linea)
         if not m:
             continue
-        titulo  = linea[:m.start()].strip(" \t|-–—:·")
-        periodo = re.sub(r"\s+", " ", m.group(0)).strip()
-        if not titulo and i > 0:
-            titulo = lineas[i - 1].strip()
+        cabecera = linea[:m.start()].strip(" \t|-–—:·,")
+        periodo  = re.sub(r"\s+", " ", m.group(0)).strip()
+        if not cabecera and i > 0:
+            cabecera = lineas[i - 1].strip()
 
-        organizacion = ""
-        for j in range(i + 1, min(i + 3, len(lineas))):
-            sig = lineas[j].strip()
-            if sig and not RANGO_RE.search(sig):
+        titulo, organizacion = _split_titulo_empresa(cabecera)
+
+        # Si la empresa no estaba junto al cargo, buscarla en la línea siguiente
+        # que sea un nombre corto (no viñeta, no responsabilidad, no contacto).
+        if not organizacion:
+            for j in range(i + 1, min(i + 3, len(lineas))):
+                sig = lineas[j].strip()
+                if not sig or RANGO_RE.search(sig):
+                    continue
+                if _es_bullet(sig) or _es_linea_contacto(sig):
+                    break
                 organizacion = sig
                 break
 
@@ -265,6 +307,20 @@ def simular_parsing(texto: str) -> Dict:
     ubicacion = None
     if ubic_m:
         ubicacion = ubic_m.group(1).strip()[:80]
+        # "Location: New York, NY | Phone: ..." -> quedarnos con la ciudad
+        mc = CIUDAD_RE.search(ubicacion)
+        if mc:
+            ubicacion = mc.group(0).strip()
+    else:
+        # Ciudad sin etiqueta en la zona de contacto (primeras líneas):
+        # "… | New York, NY". Solo se busca ahí para evitar falsos positivos
+        # tipo "Python, FastAPI" en la línea de skills.
+        for l in lineas[:6]:
+            if EMAIL_RE.search(l) or LINKEDIN_RE.search(l) or PHONE_RE.search(l) or "|" in l:
+                mc = CIUDAD_RE.search(l)
+                if mc:
+                    ubicacion = mc.group(0).strip()[:80]
+                    break
 
     nombre     = _detectar_nombre(lineas)
     puestos, educacion = _detectar_experiencia_educacion(lineas)

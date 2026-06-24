@@ -3,6 +3,7 @@
 -r requirements.txt
 
 pytest==8.3.4      # tests unitarios (tests/)
+httpx==0.27.2      # TestClient de FastAPI (tests de integración); <0.28 por starlette 0.27
 ruff==0.15.17      # linter + formatter
 bandit==1.9.4      # análisis estático de seguridad (SAST)
 pip-audit==2.10.1  # escáner de vulnerabilidades en dependencias (CVE)
