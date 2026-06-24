@@ -17,6 +17,7 @@ from app.services.comparador_vacantes import comparar_vacantes
 from app.services.parser_ats import simular_parsing
 from app.services.mejorador_bullets import mejorar_bullets
 from app.services.optimizador_ats import optimizar_cv
+from app.services.metricas import calcular_metricas
 
 
 class LimpiarVacanteRequest(BaseModel):
@@ -164,6 +165,29 @@ async def analizar_ats_endpoint(archivo: UploadFile = File(None), cv_texto: str 
     except Exception:
         raise HTTPException(status_code=422,
                             detail="No se pudo analizar el CV. Sube un DOCX/PDF válido o pega el texto.")
+
+
+@router.post("/metricas")
+async def metricas_endpoint(
+    archivo: UploadFile = File(None),
+    cv_texto: str = Form(""),
+    vacante_texto: str = Form(""),
+):
+    """
+    Calcula las 15 métricas competitivas (ATS Parse Rate, Title/Experience/
+    Seniority/Education/Certifications/Hard/Soft/Tools/Methodologies Match,
+    Measurable Impact, Bullet Strength, Readability, Format Risk, ATS Vendor Risk)
+    agrupadas en 6 categorías, cada una con score, explicación y recomendación.
+    Acepta archivo (.docx/.pdf) o texto pegado; la vacante es opcional.
+    """
+    texto = await _texto_de_entrada(archivo, cv_texto)
+    try:
+        return calcular_metricas(texto, vacante_texto or "")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudieron calcular las métricas. Revisa el CV.")
 
 
 @router.post("/comparar-vacantes")

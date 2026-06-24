@@ -1453,6 +1453,7 @@
     <button class="tab-btn" id="tabbtn-comparar" onclick="cambiarTab('comparar')"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Comparar vacantes</button>
     <button class="tab-btn" id="tabbtn-bullets" onclick="cambiarTab('bullets')"><i class="ti ti-pencil" aria-hidden="true"></i> Mejorar bullets</button>
     <button class="tab-btn" id="tabbtn-plantilla" onclick="cambiarTab('plantilla')"><i class="ti ti-rocket" aria-hidden="true"></i> Optimizador ATS</button>
+    <button class="tab-btn" id="tabbtn-metricas" onclick="cambiarTab('metricas')"><i class="ti ti-chart-radar" aria-hidden="true"></i> 15 Métricas</button>
     <button class="tab-btn" id="tabbtn-tracker" onclick="cambiarTab('tracker')"><i class="ti ti-briefcase" aria-hidden="true"></i> Mis aplicaciones</button>
   </div>
 
@@ -1850,6 +1851,56 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       </div>
     </div>
   </div><!-- /tab-plantilla -->
+
+  <!-- ════════════ TAB: 15 Métricas competitivas ════════════ -->
+  <div id="tab-metricas" class="tab-content">
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-radar" aria-hidden="true"></i> 15 métricas competitivas (estilo Jobscan)</div>
+      <p style="font-size:.88rem;color:var(--muted);margin:.4rem 0 1rem">
+        Analizamos tu CV en <strong style="color:var(--text)">6 dimensiones</strong>: Compatibilidad ATS, Match con
+        Vacante, Skills y Requisitos, Calidad del Contenido y Formato/Riesgo. Cada métrica trae
+        <strong style="color:var(--text)">score, explicación y recomendación</strong>. La vacante es opcional, pero mejora el análisis de match.
+      </p>
+      <label class="ats-dropzone" for="metricas-file">
+        <span class="big-icon"><i class="ti ti-zoom-scan" style="font-size:2.4rem" aria-hidden="true"></i></span>
+        <strong>Haz clic para subir tu CV</strong>
+        <span class="hint">PDF o DOCX · máx. 5 MB</span>
+        <input type="file" id="metricas-file" accept=".pdf,.docx,.doc" style="display:none" onchange="analizarMetricas(this)" />
+      </label>
+      <div style="text-align:center;margin-top:.6rem">
+        <button class="btn-upload" onclick="usarCVPegado('metricas')"><i class="ti ti-file-text" aria-hidden="true"></i> Usar el CV que pegué en «Adaptar»</button>
+      </div>
+      <textarea id="metricas-vacante" class="vac-input" style="margin-top:1rem" placeholder="Opcional: pega aquí la descripción de la vacante para el análisis de match…"></textarea>
+      <div id="metricas-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
+    </div>
+
+    <div id="metricas-resultado" style="display:none;margin-top:1.5rem">
+      <div class="card">
+        <div class="ats-summary">
+          <div class="score-circle-wrap">
+            <svg class="score-circle" viewBox="0 0 120 120">
+              <circle class="track" cx="60" cy="60" r="54" />
+              <circle class="fill" id="metricas-score-fill" cx="60" cy="60" r="54" />
+            </svg>
+            <div class="score-number" id="metricas-score-number">0</div>
+          </div>
+          <div class="ats-summary-text">
+            <h3>Score global de competitividad</h3>
+            <p id="metricas-resumen"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="metricas-prioritarias-card" style="margin-top:1.25rem;display:none">
+        <div class="section-title"><i class="ti ti-flame" aria-hidden="true"></i> Recomendaciones prioritarias</div>
+        <ol id="metricas-prioritarias" class="plain-list" style="padding-left:1.1rem"></ol>
+      </div>
+
+      <div id="metricas-grupos" style="margin-top:1.25rem"></div>
+    </div>
+
+  </div><!-- /tab-metricas -->
 
   <!-- ════════════ TAB: Mis aplicaciones (tracker) ════════════ -->
   <div id="tab-tracker" class="tab-content">
@@ -2741,8 +2792,97 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       cambiarTab("adaptar");
       return;
     }
-    const fn = { ats: analizarATS, parsing: analizarParsing, bullets: analizarBullets, plantilla: optimizarCV }[pestana];
+    const fn = { ats: analizarATS, parsing: analizarParsing, bullets: analizarBullets, plantilla: optimizarCV, metricas: analizarMetricas }[pestana];
     if (fn) fn({ texto: t });
+  }
+
+  // ── 15 Métricas competitivas ──────────────────────────────────
+  function _colMetrica(s) { return s >= 80 ? "#16A34A" : s >= 60 ? "#D97706" : "#DC2626"; }
+
+  async function analizarMetricas(fuente) {
+    const src = _fuenteCV(fuente);
+    if (!src) return;
+    const vac = (document.getElementById("metricas-vacante").value || "").trim();
+    if (vac) src.form.append("vacante_texto", vac);
+    const status    = document.getElementById("metricas-file-status");
+    const resultado = document.getElementById("metricas-resultado");
+    status.className = "upload-status";
+    status.innerHTML = '<span class="spinner-sm"></span>Calculando métricas de ' + src.nombre + "…";
+    try {
+      const res  = await fetch("/api/v1/metricas", { method: "POST", body: src.form });
+      if (!(res.headers.get("content-type") || "").includes("application/json")) throw new Error(_GUARD_CT);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+      status.className = "upload-status ok";
+      status.textContent = "✅ " + src.nombre + " analizado";
+      renderMetricas(data);
+      resultado.style.display = "block";
+      resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (src.reset) src.reset();
+    } catch (e) {
+      status.className = "upload-status err";
+      status.textContent = "⚠️ " + e.message;
+    }
+  }
+
+  function renderMetricas(d) {
+    const score = d.score_global || 0;
+    const circumference = 2 * Math.PI * 54;
+    const fill = document.getElementById("metricas-score-fill");
+    fill.style.strokeDashoffset = circumference - (score / 100) * circumference;
+    const color = _colMetrica(score);
+    fill.style.stroke = color;
+    const numEl = document.getElementById("metricas-score-number");
+    numEl.style.color = color;
+    animarNumero(numEl, 0, score, 1000);
+    document.getElementById("metricas-resumen").textContent =
+      "Media de las métricas aplicables. Cuanto más alto, más competitivo es tu CV frente a los filtros ATS.";
+
+    const pc = document.getElementById("metricas-prioritarias-card");
+    const ol = document.getElementById("metricas-prioritarias");
+    const pr = d.prioritarias || [];
+    if (pr.length) {
+      ol.innerHTML = pr.map(p =>
+        `<li style="margin-bottom:.5rem"><strong style="color:${_colMetrica(p.score)}">${escapeHtml(p.nombre)} (${p.score})</strong> — ${escapeHtml(p.recomendacion)}</li>`
+      ).join("");
+      pc.style.display = "block";
+    } else {
+      pc.style.display = "none";
+    }
+
+    const cont = document.getElementById("metricas-grupos");
+    cont.innerHTML = (d.categorias || []).map(cat => {
+      const items = (d.por_categoria && d.por_categoria[cat]) || [];
+      if (!items.length) return "";
+      const filas = items.map(m => {
+        const sep = 'padding:.7rem 0;border-top:1px solid #e8edf3';
+        if (!m.aplica) {
+          return `<div style="${sep}">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong style="font-size:.92rem">${escapeHtml(m.nombre)}</strong>
+              <span style="color:var(--muted);font-size:.8rem">N/A</span>
+            </div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:.25rem">${escapeHtml(m.explicacion)}</div>
+          </div>`;
+        }
+        const col = _colMetrica(m.score);
+        return `<div style="${sep}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong style="font-size:.92rem">${escapeHtml(m.nombre)}</strong>
+            <span style="color:${col};font-weight:600">${m.score}</span>
+          </div>
+          <div style="height:7px;background:#eef2f7;border-radius:6px;margin:.4rem 0;overflow:hidden">
+            <div style="height:100%;width:${m.score}%;background:${col};border-radius:6px"></div>
+          </div>
+          <div style="font-size:.82rem;color:var(--muted)">${escapeHtml(m.explicacion)}</div>
+          <div style="font-size:.82rem;margin-top:.2rem"><strong>Sugerencia:</strong> ${escapeHtml(m.recomendacion)}</div>
+        </div>`;
+      }).join("");
+      return `<div class="card" style="margin-bottom:1rem">
+        <div class="section-title">${escapeHtml(cat)}</div>
+        ${filas}
+      </div>`;
+    }).join("");
   }
 
   async function analizarATS(fuente) {

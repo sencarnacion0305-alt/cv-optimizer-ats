@@ -27,13 +27,22 @@ _CSP = (
 
 @app.middleware("http")
 async def cabeceras_seguridad(request: Request, call_next):
-    """Añade cabeceras de seguridad a todas las respuestas."""
+    """Añade cabeceras de seguridad a todas las respuestas.
+
+    Nota de privacidad: la API NO persiste CVs ni vacantes. Todo se procesa en
+    memoria durante la petición y se descarta; el historial de aplicaciones vive
+    solo en el localStorage del navegador del usuario (ver /privacy).
+    """
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     response.headers["Content-Security-Policy"] = _CSP
+    # HSTS solo cuando la conexión es HTTPS (Render termina TLS y reenvía el proto).
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    if proto == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 @app.exception_handler(Exception)
@@ -62,3 +71,15 @@ app.include_router(cv.router, prefix="/api/v1", tags=["CV"])
 def root():
     """Sirve el frontend."""
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.get("/privacy", include_in_schema=False)
+def privacy():
+    """Página de Política de Privacidad (SaaS que procesa CVs)."""
+    return FileResponse(os.path.join(STATIC_DIR, "privacy.html"))
+
+
+@app.get("/terms", include_in_schema=False)
+def terms():
+    """Página de Términos del Servicio."""
+    return FileResponse(os.path.join(STATIC_DIR, "terms.html"))

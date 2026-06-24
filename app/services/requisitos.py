@@ -98,9 +98,11 @@ def _idiomas_requeridos(vacante: str, cv: str) -> List[Dict]:
 
 _NIVEL_EDU = [
     ("Doctorado", r"\bph\.?d\b|doctorad|doctorate"),
-    ("Máster", r"m[aá]ster|master'?s?|\bmba\b|maestr[ií]a|m\.?sc|posgrado|postgrad"),
+    ("Máster", r"m[aá]ster|master'?s?|\bmba\b|maestr[ií]a|m\.?sc|m\.\s?s\.?\b|"
+               r"posgrado|postgrad"),
     ("Grado universitario", r"\bgrado\b|licenciatura|bachelor|\bdegree\b|ingenier[ií]a|"
-                            r"b\.?sc|b\.?eng|t[ií]tulo\s+universitario|carrera\s+universitaria"),
+                            r"b\.?sc|b\.?eng|b\.\s?s\.?\b|b\.\s?a\.?\b|"
+                            r"t[ií]tulo\s+universitario|carrera\s+universitaria"),
 ]
 
 
