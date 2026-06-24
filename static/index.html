@@ -1892,6 +1892,11 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         </div>
       </div>
 
+      <div class="card" style="margin-top:1.25rem">
+        <div class="section-title"><i class="ti ti-chart-radar" aria-hidden="true"></i> Perfil por categoría</div>
+        <div id="metricas-radar" style="text-align:center;margin-top:.4rem"></div>
+      </div>
+
       <div class="card" id="metricas-prioritarias-card" style="margin-top:1.25rem;display:none">
         <div class="section-title"><i class="ti ti-flame" aria-hidden="true"></i> Recomendaciones prioritarias</div>
         <ol id="metricas-prioritarias" class="plain-list" style="padding-left:1.1rem"></ol>
@@ -2799,6 +2804,45 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
   // ── 15 Métricas competitivas ──────────────────────────────────
   function _colMetrica(s) { return s >= 80 ? "#16A34A" : s >= 60 ? "#D97706" : "#DC2626"; }
 
+  function _shortCat(c) {
+    return ({ "Compatibilidad ATS": "ATS", "Match con Vacante": "Match",
+              "Skills y Requisitos": "Skills", "Calidad del Contenido": "Calidad",
+              "Formato y Riesgo": "Formato" })[c] || c;
+  }
+
+  function _radarMetricas(cats) {
+    const N = cats.length;
+    if (N < 3) return "";              // un radar necesita al menos 3 ejes
+    const cx = 170, cy = 150, R = 95;
+    const ang = i => (-90 + i * 360 / N) * Math.PI / 180;
+    const pt = (i, r) => [cx + r * Math.cos(ang(i)), cy + r * Math.sin(ang(i))];
+    let grid = "";
+    [0.25, 0.5, 0.75, 1].forEach(f => {
+      const pts = cats.map((_, i) => pt(i, R * f).map(n => n.toFixed(1)).join(",")).join(" ");
+      grid += `<polygon points="${pts}" fill="none" stroke="#e2e8f0" stroke-width="1"/>`;
+    });
+    let axes = "";
+    cats.forEach((_, i) => {
+      const [x, y] = pt(i, R);
+      axes += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`;
+    });
+    const dpts = cats.map((c, i) => pt(i, R * (c.score / 100)).map(n => n.toFixed(1)).join(",")).join(" ");
+    let labels = "", dots = "";
+    cats.forEach((c, i) => {
+      const [lx, ly] = pt(i, R + 24);
+      const anchor = Math.abs(lx - cx) < 12 ? "middle" : (lx > cx ? "start" : "end");
+      labels += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="11" fill="#475569">${escapeHtml(c.label)}</text>`;
+      labels += `<text x="${lx.toFixed(1)}" y="${(ly + 14).toFixed(1)}" text-anchor="${anchor}" dominant-baseline="middle" font-size="12" font-weight="700" fill="${_colMetrica(c.score)}">${c.score}</text>`;
+      const [dx, dy] = pt(i, R * (c.score / 100));
+      dots += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="3" fill="#2563eb"/>`;
+    });
+    return `<svg viewBox="0 0 340 300" width="100%" style="max-width:420px" xmlns="http://www.w3.org/2000/svg">
+      ${grid}${axes}
+      <polygon points="${dpts}" fill="rgba(37,99,235,0.18)" stroke="#2563eb" stroke-width="2"/>
+      ${dots}${labels}
+    </svg>`;
+  }
+
   async function analizarMetricas(fuente) {
     const src = _fuenteCV(fuente);
     if (!src) return;
@@ -2850,10 +2894,20 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       pc.style.display = "none";
     }
 
+    // Radar de promedios por categoría
+    const catAvg = cat => {
+      const items = (d.por_categoria && d.por_categoria[cat]) || [];
+      const ap = items.filter(m => m.aplica).map(m => m.score);
+      return ap.length ? Math.round(ap.reduce((a, b) => a + b, 0) / ap.length) : 0;
+    };
+    const radarCats = (d.categorias || []).map(cat => ({ label: _shortCat(cat), score: catAvg(cat) }));
+    document.getElementById("metricas-radar").innerHTML = _radarMetricas(radarCats);
+
     const cont = document.getElementById("metricas-grupos");
     cont.innerHTML = (d.categorias || []).map(cat => {
       const items = (d.por_categoria && d.por_categoria[cat]) || [];
       if (!items.length) return "";
+      const avg = catAvg(cat);
       const filas = items.map(m => {
         const sep = 'padding:.7rem 0;border-top:1px solid #e8edf3';
         if (!m.aplica) {
@@ -2879,7 +2933,10 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
         </div>`;
       }).join("");
       return `<div class="card" style="margin-bottom:1rem">
-        <div class="section-title">${escapeHtml(cat)}</div>
+        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>${escapeHtml(cat)}</span>
+          <span style="font-size:.85rem;font-weight:700;color:${_colMetrica(avg)}">${avg}<span style="color:var(--muted);font-weight:400">/100</span></span>
+        </div>
         ${filas}
       </div>`;
     }).join("");
