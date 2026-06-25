@@ -316,29 +316,38 @@ def _analizar_formato(doc) -> Tuple[List[Dict], int, int]:
 # ---------------------------------------------------------------------------
 
 def _analizar_estructura(lineas: List[str]) -> Tuple[List[Dict], int, int]:
-    # Detección de secciones CANÓNICA (la misma que Adaptar/Checklist/Métricas):
-    # una sección cuenta si tiene encabezado O contenido (rango de fechas, grado,
-    # lista de skills, párrafo de resumen). Antes este check usaba un patrón propio
-    # y contradecía a las otras pestañas.
-    from app.core.cv_analyzer import detectar_secciones
+    # Detección de secciones CANÓNICA (la misma que Adaptar/Checklist/Métricas) con
+    # 3 estados: 'encabezado' (título estándar), 'contenido' (presente pero SIN título
+    # claro, p.ej. lista de skills sin «Habilidades») y 'ausente'. Se distingue para
+    # recomendar distinto: añadir la sección vs. añadir el encabezado estándar.
+    from app.core.cv_analyzer import estado_secciones
     checks: List[Dict] = []
     max_pts = 20
-    pres = detectar_secciones("\n".join(lineas))
+    estado = estado_secciones("\n".join(lineas))
     nombres = {"contacto": "Contacto", "resumen": "Resumen / Perfil",
                "experiencia": "Experiencia", "educacion": "Educación",
                "habilidades": "Habilidades"}
-    faltantes = []
+    faltantes = 0
     for key, nombre in nombres.items():
-        if pres.get(key):
-            checks.append(_check("ok", f"Sección «{nombre}»", "Presente y detectable."))
-        else:
-            faltantes.append(nombre)
+        st = estado.get(key, "ausente")
+        if st == "encabezado":
+            checks.append(_check("ok", f"Sección «{nombre}»", "Presente con encabezado estándar."))
+        elif st == "contenido":
+            # Presente por contenido: NO se penaliza; se sugiere añadir el encabezado.
+            if key == "contacto":
+                checks.append(_check("ok", f"Sección «{nombre}»", "Datos de contacto detectados."))
+            else:
+                checks.append(_check(
+                    "warning", f"Sección «{nombre}» sin encabezado",
+                    f"Detectamos su contenido, pero le falta el título. Añade un encabezado "
+                    f"«{nombre}» para que el ATS la clasifique con seguridad."))
+        else:  # ausente
+            faltantes += 1
             checks.append(_check(
                 "warning", f"Falta la sección «{nombre}»",
                 "El ATS busca encabezados estándar. Agrega esta sección con un "
                 "título claro para que clasifique bien tu información."))
-    penalizacion = len(faltantes) * 4
-    puntos = max(0, max_pts - penalizacion)
+    puntos = max(0, max_pts - faltantes * 4)
     return checks, puntos, max_pts
 
 

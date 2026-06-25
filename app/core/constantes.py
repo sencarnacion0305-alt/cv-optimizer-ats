@@ -62,12 +62,14 @@ HEADERS_SECCION = {
     "experiencia": re.compile(
         r"^(work\s*experience|professional\s*experience|experience|"
         r"experiencia(\s*(profesional|laboral))?|employment(\s*history)?|"
-        r"trayectoria|historial\s*laboral)", re.I),
+        r"trayectoria(\s*profesional)?|historial(\s*laboral)?|career(\s*history)?)", re.I),
     "educacion": re.compile(
-        r"^(education|educaci[oó]n|formaci[oó]n(\s*acad[eé]mica)?|estudios|academic)", re.I),
+        r"^(education|educaci[oó]n|formaci[oó]n(\s*acad[eé]mica)?|estudios|"
+        r"academic(\s*background)?|qualifications?)", re.I),
     "habilidades": re.compile(
         r"^(technical\s*skills?|core\s*skills?|skills?|habilidades|competencias?|"
-        r"conocimientos|aptitudes|tech\s*stack)", re.I),
+        r"conocimientos|aptitudes|tech(nolog(y|ies))?\s*stack|tecnolog[ií]as?|"
+        r"stack(\s*t[eé]cnico)?|herramientas|tools(\s*&?\s*technologies)?)", re.I),
 }
 
 # ---------------------------------------------------------------------------

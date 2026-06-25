@@ -759,6 +759,16 @@
     }
 
     const ok = "ok", warn = "warning", err = "error";
+    // Estado de sección (3 estados del core): encabezado / contenido / ausente.
+    const _estadoSec = (core && core.secciones_estado) || null;
+    const _boolSec = { resumen: secResumen, experiencia: secExp, educacion: secEdu, habilidades: secSkills };
+    const _secChk = (key, name, absentState) => {
+      const st = _estadoSec ? _estadoSec[key] : null;
+      if (st === "encabezado") return { label: `Sección ${name}`, estado: ok };
+      if (st === "contenido")  return { label: `Sección ${name}: añade el encabezado «${name}»`, estado: warn };
+      if (st === "ausente")    return { label: `Falta la sección ${name}`, estado: absentState };
+      return { label: `Sección ${name}`, estado: _boolSec[key] ? ok : absentState };  // respaldo offline
+    };
     const categorias = [
       { nombre: "Información de contacto", checks: [
         { label: "Email presente", estado: c.email ? ok : err },
@@ -768,10 +778,10 @@
         { label: "Ubicación / ciudad indicada", estado: tieneUbic ? ok : warn },
       ]},
       { nombre: "Estructura y secciones", checks: [
-        { label: "Sección Resumen / Perfil", estado: secResumen ? ok : warn },
-        { label: "Sección Experiencia", estado: secExp ? ok : err },
-        { label: "Sección Educación", estado: secEdu ? ok : warn },
-        { label: "Sección Habilidades", estado: secSkills ? ok : warn },
+        _secChk("resumen", "Resumen / Perfil", warn),
+        _secChk("experiencia", "Experiencia", err),
+        _secChk("educacion", "Educación", warn),
+        _secChk("habilidades", "Habilidades", warn),
         { label: "Orden lógico (resumen → experiencia)", estado: ordenOk ? ok : warn },
       ]},
       { nombre: "Formato ATS", checks: [

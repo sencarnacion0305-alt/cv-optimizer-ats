@@ -83,6 +83,26 @@ def detectar_secciones(cv: str) -> Dict[str, bool]:
     return _secciones_y_seg(cv)[0]
 
 
+def estado_secciones(cv: str) -> Dict[str, str]:
+    """
+    Estado de cada sección, para dar recomendaciones DISTINTAS:
+      'encabezado' — tiene un título estándar reconocible.
+      'contenido'  — presente por su contenido pero SIN encabezado claro
+                     (p.ej. lista de tecnologías sin el título «Habilidades»).
+      'ausente'    — no se detecta ni por título ni por contenido.
+    """
+    pres, seg = _secciones_y_seg(cv)
+    estado = {}
+    for t in ("contacto", "resumen", "experiencia", "educacion", "habilidades"):
+        if not pres[t]:
+            estado[t] = "ausente"
+        elif seg.get(t):
+            estado[t] = "encabezado"
+        else:
+            estado[t] = "contenido"
+    return estado
+
+
 # ---------------------------------------------------------------------------
 # Calidad de contenido (CANÓNICA)
 # ---------------------------------------------------------------------------
@@ -427,6 +447,8 @@ def analizar_cv(cv: str, vacante: str = "") -> Dict:
 
     parsing = simular_parsing(cv)
     secciones, seg = _secciones_y_seg(cv)
+    estado_sec = {t: ("encabezado" if seg.get(t) else "contenido") if secciones[t] else "ausente"
+                  for t in ("contacto", "resumen", "experiencia", "educacion", "habilidades")}
     calidad = calcular_calidad(cv, seg)
     formato = calcular_formato(cv)
     requisitos = analizar_requisitos(cv, vacante)
@@ -453,6 +475,7 @@ def analizar_cv(cv: str, vacante: str = "") -> Dict:
         "score_global": score_global,
         "parse_rate": parsing["score"],
         "secciones": secciones,
+        "secciones_estado": estado_sec,
         "contacto": parsing["campos"],
         "skills": parsing["skills"],
         "requisitos": requisitos,
