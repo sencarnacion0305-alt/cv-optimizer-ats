@@ -312,9 +312,10 @@ def _es_bullet_de_logro(linea: str) -> bool:
 
 
 def mejorar_bullets(cv_texto: str) -> Dict:
-    # Quitar prefijos de viñeta para que la detección de verbos débiles funcione
-    lineas = [re.sub(r"^[\s\-–—•·*▪●○‣◦]+", "", l).strip()
-              for l in cv_texto.splitlines() if l.strip()]
+    # Unidades de logro por LÍNEAS y ORACIONES (funciona con prosa, no solo viñetas).
+    # Import diferido para evitar ciclo (core importa este módulo).
+    from app.core.cv_analyzer import unidades_logro
+    lineas = unidades_logro(cv_texto)
     sector = detectar_sector(cv_texto)
 
     mejoras: List[Dict] = []
@@ -322,7 +323,7 @@ def mejorar_bullets(cv_texto: str) -> Dict:
     n_verbos = n_metricas = 0
 
     for linea in lineas:
-        if len(linea) < 25 or len(linea) > 400:
+        if len(linea) < 20 or len(linea) > 320:
             continue
         if not _es_bullet_de_logro(linea):
             continue

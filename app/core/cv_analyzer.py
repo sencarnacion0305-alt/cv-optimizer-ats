@@ -104,17 +104,48 @@ def _palabras_repetidas(cv: str) -> List[str]:
     return [f"{w} x{c}" for w, c in rep[:6]]
 
 
+def unidades_logro(cv: str, seg: Optional[Dict[str, List[str]]] = None) -> List[str]:
+    """
+    Segmenta el CV en 'unidades de logro' por LÍNEAS **y** por ORACIONES — funciona
+    con viñetas, prosa, saltos de línea y separadores variados (no solo "-"/"•").
+
+    Usa la sección Experiencia si existe; si no (CV en prosa sin encabezados), el
+    cuerpo, excluyendo encabezados de sección y líneas de contacto. Así las métricas
+    de impacto/bullets y «Mejorar bullets» dejan de devolver N/A con CVs en prosa.
+    """
+    if seg is None:
+        seg = _segmentar(cv)
+    if seg.get("experiencia"):
+        fuente = list(seg["experiencia"])
+    else:
+        fuente = []
+        for raw in cv.splitlines():
+            s = raw.strip()
+            if not s:
+                continue
+            if len(s) < 50 and any(p.match(s.rstrip(":")) for p in K.HEADERS_SECCION.values()):
+                continue  # encabezado de sección
+            if EMAIL_RE.search(s) or PHONE_RE.search(s) or LINKEDIN_RE.search(s):
+                continue  # línea de contacto
+            fuente.append(s)
+
+    out: List[str] = []
+    for linea in fuente:
+        base = re.sub(r"^[\s\-–—•·*▪●○‣◦]+", "", linea).strip()
+        for frag in re.split(r"(?<=[.;])\s+", base):   # partir por oraciones
+            f = frag.strip(" \t-–—•·")
+            if 15 <= len(f) <= 300:
+                out.append(f)
+    return out
+
+
 def _bullets_de(cv: str, seg: Dict[str, List[str]]) -> List[str]:
-    """Líneas de la sección Experiencia (o líneas con pinta de logro como respaldo)."""
-    exp = seg.get("experiencia", [])
-    if exp:
-        return [l for l in exp if len(l.strip()) > 20]
-    return [l.strip() for l in cv.splitlines() if len(l.strip()) > 30]
+    return unidades_logro(cv, seg)
 
 
 def bullets_de(cv: str) -> List[str]:
-    """Vista pública de las viñetas/logros del CV (para otras pestañas)."""
-    return _bullets_de(cv, _segmentar(cv))
+    """Vista pública de las unidades de logro del CV (para otras pestañas)."""
+    return unidades_logro(cv)
 
 
 def _hay_keyword_stuffing(cv: str) -> bool:
