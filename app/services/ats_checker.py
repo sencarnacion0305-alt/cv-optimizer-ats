@@ -316,15 +316,20 @@ def _analizar_formato(doc) -> Tuple[List[Dict], int, int]:
 # ---------------------------------------------------------------------------
 
 def _analizar_estructura(lineas: List[str]) -> Tuple[List[Dict], int, int]:
+    # Detección de secciones CANÓNICA (la misma que Adaptar/Checklist/Métricas):
+    # una sección cuenta si tiene encabezado O contenido (rango de fechas, grado,
+    # lista de skills, párrafo de resumen). Antes este check usaba un patrón propio
+    # y contradecía a las otras pestañas.
+    from app.core.cv_analyzer import detectar_secciones
     checks: List[Dict] = []
     max_pts = 20
-    # Solo las lineas cortas son candidatas a encabezado de seccion
-    posibles_titulos = [l for l in lineas if len(l) < 60]
-
+    pres = detectar_secciones("\n".join(lineas))
+    nombres = {"contacto": "Contacto", "resumen": "Resumen / Perfil",
+               "experiencia": "Experiencia", "educacion": "Educación",
+               "habilidades": "Habilidades"}
     faltantes = []
-    for nombre, patron in SECCIONES.items():
-        encontrada = any(patron.search(t) for t in posibles_titulos)
-        if encontrada:
+    for key, nombre in nombres.items():
+        if pres.get(key):
             checks.append(_check("ok", f"Sección «{nombre}»", "Presente y detectable."))
         else:
             faltantes.append(nombre)
@@ -332,7 +337,6 @@ def _analizar_estructura(lineas: List[str]) -> Tuple[List[Dict], int, int]:
                 "warning", f"Falta la sección «{nombre}»",
                 "El ATS busca encabezados estándar. Agrega esta sección con un "
                 "título claro para que clasifique bien tu información."))
-
     penalizacion = len(faltantes) * 4
     puntos = max(0, max_pts - penalizacion)
     return checks, puntos, max_pts

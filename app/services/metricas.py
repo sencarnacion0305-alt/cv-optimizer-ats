@@ -22,7 +22,8 @@ from app.services.adaptador import (
 )
 from app.services.parser_ats import simular_parsing
 from app.services.requisitos import analizar_requisitos
-from app.services.scoring import SOFT_SKILLS
+from app.core.constantes import SOFT_SKILLS
+from app.core.cv_analyzer import calcular_calidad, bullets_de
 from app.services.mejorador_bullets import tiene_metrica
 
 
@@ -126,15 +127,8 @@ def _soft_match(vacante: str, cv: str):
 
 
 def _bullets(cv: str) -> List[str]:
-    from app.services.ats_checker import _empieza_con_verbo_accion, _es_titulo_seccion
-    out = []
-    for raw in cv.splitlines():
-        es_vineta = raw.strip()[:1] in "-–—•·*▪●○‣◦"
-        l = re.sub(r"^[\s\-–—•·*▪●○‣◦]+", "", raw).strip()
-        if 25 <= len(l) <= 350 and not _es_titulo_seccion(l):
-            if es_vineta or _empieza_con_verbo_accion(l):
-                out.append(l)
-    return out
+    # Misma detección de viñetas que el core (fuente única) → consistencia con Adaptar.
+    return bullets_de(cv)
 
 
 def _faltantes(pedidos, presentes) -> str:
@@ -299,7 +293,7 @@ def _m_impact(bullets: List[str]) -> Dict:
                        "No se detectaron viñetas de logros para evaluar.",
                        "Escribe tus logros como viñetas que empiecen con verbo de acción.")
     con = sum(1 for b in bullets if tiene_metrica(b))
-    score = _c(con / len(bullets) * 100)
+    score = _c(con / len(bullets) * 100)   # == core.calidad["impacto"] (misma fórmula)
     expl = f"{con} de {len(bullets)} viñetas incluyen una métrica real (%, $, tiempo, volumen)."
     rec = ("Buen uso de métricas." if score >= 60 else
            "Cuantifica más logros: añade %, importes, tiempos o volúmenes reales.")
@@ -336,33 +330,18 @@ def _m_bullet_strength(cv: str, bullets: List[str]) -> Dict:
 
 
 def _m_readability(cv: str) -> Dict:
-    texto = cv.lower()
-    score = 100
-    vagas = sum(len(re.findall(r"\b" + re.escape(v) + r"\b", texto)) for v in _VAGAS)
-    score -= min(30, vagas * 6)
-    # frases muy largas
-    largas = sum(1 for fr in re.split(r"[.\n]", cv) if len(fr.split()) > 40)
-    score -= min(20, largas * 5)
-    # repetición de palabras de contenido
-    palabras = [w for w in re.findall(r"[a-záéíóúñ]{5,}", texto) if w not in _STOP]
-    rep = 0
-    for w in set(palabras):
-        c = palabras.count(w)
-        if c > 6:
-            rep += 1
-    score -= min(20, rep * 4)
-    score = _c(score)
+    # Legibilidad del core (fuente única) → no contradice la Calidad de «Adaptar».
+    cal = calcular_calidad(cv)
+    score = cal["legibilidad"]
     detalle = []
-    if vagas:
-        detalle.append(f"{vagas} frases vagas")
-    if largas:
-        detalle.append(f"{largas} frases muy largas")
-    if rep:
-        detalle.append(f"{rep} palabras repetidas en exceso")
+    if cal["relleno"]:
+        detalle.append(f"{cal['relleno']} frases de relleno")
+    if cal["repetidas"]:
+        detalle.append(f"{len(cal['repetidas'])} palabras repetidas en exceso")
     expl = ("Claridad y concisión del texto: " +
             (", ".join(detalle) if detalle else "sin problemas notables") + ".")
     rec = ("Texto claro y profesional." if score >= 75 else
-           "Elimina frases hechas, acorta oraciones largas y evita repetir las mismas palabras.")
+           "Elimina frases de relleno y evita repetir las mismas palabras.")
     return _metric("readability", "Readability Score", CAT_CALIDAD, score, expl, rec)
 
 

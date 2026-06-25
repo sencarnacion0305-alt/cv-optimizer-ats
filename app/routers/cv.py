@@ -18,6 +18,7 @@ from app.services.parser_ats import simular_parsing
 from app.services.mejorador_bullets import mejorar_bullets
 from app.services.optimizador_ats import optimizar_cv
 from app.services.metricas import calcular_metricas
+from app.core.cv_analyzer import analizar_cv
 
 
 class LimpiarVacanteRequest(BaseModel):
@@ -165,6 +166,28 @@ async def analizar_ats_endpoint(archivo: UploadFile = File(None), cv_texto: str 
     except Exception:
         raise HTTPException(status_code=422,
                             detail="No se pudo analizar el CV. Sube un DOCX/PDF válido o pega el texto.")
+
+
+@router.post("/analyze")
+async def analyze_endpoint(
+    archivo: UploadFile = File(None),
+    cv_texto: str = Form(""),
+    vacante_texto: str = Form(""),
+):
+    """
+    Fuente ÚNICA de verdad del análisis (core.cv_analyzer.analizar_cv).
+    Devuelve el objeto normalizado del que TODAS las pestañas son una vista:
+    parse_rate, secciones, contacto, skills, keywords, seniority, requisitos,
+    calidad, formato, cargo, sub_scores y score_global. Acepta archivo o texto.
+    """
+    texto = await _texto_de_entrada(archivo, cv_texto)
+    try:
+        return analizar_cv(texto, vacante_texto or "")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=422,
+                            detail="No se pudo analizar el CV. Revisa el archivo o el texto.")
 
 
 @router.post("/metricas")

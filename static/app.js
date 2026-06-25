@@ -690,7 +690,7 @@
 
   // ── Tabs ──────────────────────────────────────────────────────
   // ════════════ Checklist ATS — 20 checks (cliente) ════════════
-  function runChecklist() {
+  async function runChecklist() {
     const cv = (document.getElementById("checklist-cv").value.trim())
              || (document.getElementById("cv") ? document.getElementById("cv").value.trim() : "");
     const status = document.getElementById("checklist-status");
@@ -702,6 +702,19 @@
       return;
     }
     status.textContent = "";
+
+    // Fuente única: secciones y calidad vienen del backend (core.cv_analyzer),
+    // para no contradecir a las otras pestañas. Si la red falla, se usa el
+    // cálculo local como respaldo (modo offline).
+    let core = null;
+    try {
+      const _f = new FormData();
+      _f.append("cv_texto", cv);
+      const _r = await fetch("/api/v1/analyze", { method: "POST", body: _f });
+      if (_r.ok && (_r.headers.get("content-type") || "").includes("application/json")) {
+        core = await _r.json();
+      }
+    } catch (e) { core = null; }
 
     const lower = cv.toLowerCase();
     const lineas = cv.split("\n").map(l => l.trim()).filter(Boolean);
@@ -716,10 +729,14 @@
 
     const tieneUbic = /(location|ubicaci[oó]n|address|direcci[oó]n)\s*[:\-]/i.test(cv)
       || /\b(remote|remoto|madrid|barcelona|m[eé]xico|bogot[aá]|lima|santiago|buenos aires|new york|london|miami)\b/i.test(cv);
-    const secResumen = /\b(professional\s+summary|summary|perfil|resumen|objetivo|about\s+me)\b/i.test(cv);
-    const secExp = /\b(work\s+experience|experience|experiencia|employment|trayectoria|historial\s+laboral)\b/i.test(cv);
-    const secEdu = /\b(education|educaci[oó]n|formaci[oó]n|academic)\b/i.test(cv);
-    const secSkills = /\b(technical\s+skills?|skills?|habilidades|competencias?|conocimientos)\b/i.test(cv);
+    let secResumen = /\b(professional\s+summary|summary|perfil|resumen|objetivo|about\s+me)\b/i.test(cv);
+    let secExp = /\b(work\s+experience|experience|experiencia|employment|trayectoria|historial\s+laboral)\b/i.test(cv);
+    let secEdu = /\b(education|educaci[oó]n|formaci[oó]n|academic)\b/i.test(cv);
+    let secSkills = /\b(technical\s+skills?|skills?|habilidades|competencias?|conocimientos)\b/i.test(cv);
+    if (core && core.secciones) {
+      secResumen = !!core.secciones.resumen; secExp = !!core.secciones.experiencia;
+      secEdu = !!core.secciones.educacion;   secSkills = !!core.secciones.habilidades;
+    }
     const idxRes = lower.search(/\b(summary|resumen|perfil|profile|objetivo)\b/);
     const idxExp = lower.search(/\b(experience|experiencia|employment)\b/);
     const ordenOk = idxRes === -1 || idxExp === -1 || idxRes < idxExp;
@@ -728,10 +745,18 @@
     const sinTabla = !/[│┃]|[─━]{3,}|\t{2,}/.test(cv) && _lineasPipe < 3;
     const sinChars = !/[‘’“”•▪●—\u{1F300}-\u{1FAFF}]/u.test(cv);
     const tieneVinetas = /^[\s]*[-•*–·]\s+/m.test(cv);
-    const conMetrica = lineas.filter(l => /\d+\s*%|\$\s*\d|\b\d[\d.,]*\s*\+|\bx\s?\d|\d{2,}/.test(l)).length;
+    let conMetrica = lineas.filter(l => /\d+\s*%|\$\s*\d|\b\d[\d.,]*\s*\+|\bx\s?\d|\d{2,}/.test(l)).length;
     const verboRe = /^[\s\-•*–·]*(led|managed|built|created|designed|developed|implemented|reduced|increased|improved|launched|delivered|drove|optimized|achieved|resolved|analyzed|coordinated|automated|spearheaded|streamlined|lider|gestion|desarroll|implement|dise|reduj|aument|mejor|cre|coordin|logr|dirig|ejecut|analic)/i;
-    const conVerbo = bullets.filter(l => verboRe.test(l)).length;
-    const ratioVerbo = bullets.length ? conVerbo / bullets.length : 0;
+    let conVerbo = bullets.filter(l => verboRe.test(l)).length;
+    let ratioVerbo = bullets.length ? conVerbo / bullets.length : 0;
+    // Contenido desde el core (fuente única) cuando hay backend; si no, lo local.
+    let nBullets = bullets.length, nWeak = weak.length, repList = rep, stuff = stuffing;
+    if (core && core.calidad) {
+      const cal = core.calidad;
+      conMetrica = cal.con_metrica; conVerbo = cal.con_verbo; ratioVerbo = cal.ratio_verbo;
+      nBullets = cal.bullets_total; nWeak = cal.relleno;
+      repList = cal.repetidas || []; stuff = cal.stuffing;
+    }
 
     const ok = "ok", warn = "warning", err = "error";
     const categorias = [
@@ -760,13 +785,13 @@
       { nombre: "Calidad de contenido", checks: [
         { label: `Logros con métricas numéricas (${conMetrica})`,
           estado: conMetrica >= 2 ? ok : (conMetrica === 1 ? warn : err) },
-        { label: `Verbos de acción al inicio (${conVerbo}/${bullets.length})`,
+        { label: `Verbos de acción al inicio (${conVerbo}/${nBullets})`,
           estado: ratioVerbo >= 0.4 ? ok : warn },
-        { label: weak.length ? `Frases débiles de relleno (${weak.length})` : "Sin frases débiles de relleno",
-          estado: weak.length === 0 ? ok : warn },
-        { label: rep.length ? `Palabras muy repetidas (${rep.slice(0, 3).join(", ")})` : "Sin palabras muy repetidas",
-          estado: rep.length === 0 ? ok : warn },
-        { label: "Sin keyword stuffing", estado: stuffing ? err : ok },
+        { label: nWeak ? `Frases débiles de relleno (${nWeak})` : "Sin frases débiles de relleno",
+          estado: nWeak === 0 ? ok : warn },
+        { label: repList.length ? `Palabras muy repetidas (${repList.slice(0, 3).join(", ")})` : "Sin palabras muy repetidas",
+          estado: repList.length === 0 ? ok : warn },
+        { label: "Sin keyword stuffing", estado: stuff ? err : ok },
       ]},
     ];
     renderChecklist(categorias);
