@@ -320,9 +320,12 @@ def _expandir_acronimos_mapa(mapa: Dict) -> int:
     return n
 
 
-def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
-    """Aplica las mejoras de contenido sobre el JSON. Devuelve lista de cambios."""
-    cambios: List[str] = []
+def enriquecer(mapa: Dict, vacante_texto: str) -> List[Dict]:
+    """Aplica las mejoras de contenido sobre el JSON. Devuelve cambios tipados y
+    además guarda un resumen estructurado en mapa['_meta'] (keywords inyectadas…)."""
+    cambios: List[Dict] = []
+    meta = {"keywords_inyectadas": [], "titulo_inyectado": None,
+            "n_verbos": 0, "n_metricas": 0, "n_acronimos": 0}
 
     # 1. Bullets de experiencia: verbos de accion + metricas de impacto
     n_verb = n_met = 0
@@ -341,10 +344,12 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
                 n_met += 1
             nuevos.append(b)
         job["bullets"] = nuevos
+    meta["n_verbos"], meta["n_metricas"] = n_verb, n_met
     if n_verb:
-        cambios.append(f"{n_verb} bullet(s) reescritos con verbos de acción")
+        cambios.append(_cambio("verbos", f"{n_verb} bullet(s) reescritos con verbos de acción"))
     if n_met:
-        cambios.append(f"{n_met} métrica(s) de impacto añadidas — ajusta los valores con ~")
+        cambios.append(_cambio("metricas",
+                               f"{n_met} métrica(s) de impacto añadidas — ajusta los valores con ~"))
 
     # 2. Vacante: titulo + keywords en resumen y habilidades
     if vacante_texto.strip():
@@ -355,7 +360,8 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
         titulo = _detectar_titulo_vacante(vacante_texto)
         if titulo and not _titulo_en_cv(titulo, texto_total):
             mapa["headline"] = (mapa["headline"] + " | " + titulo).strip(" |")
-            cambios.append(f"Cargo objetivo «{titulo}» añadido al titular")
+            meta["titulo_inyectado"] = titulo
+            cambios.append(_cambio("cargo", f"Cargo objetivo «{titulo}» añadido al titular"))
 
         base = mapa["resumen"] or mapa["headline"]
         mapa["resumen"] = _construir_resumen_completo(base, cubiertas, sugeridas)
@@ -366,15 +372,24 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[str]:
         if faltantes:
             mapa["habilidades"].append(
                 " | ".join(_formato_keyword(k) for k in faltantes))
+        # Keywords concretas de la vacante que se inyectaron (sugeridas + faltantes).
+        inyectadas: List[str] = []
+        for k in (sugeridas + faltantes):
+            kf = _formato_keyword(k)
+            if kf and kf not in inyectadas:
+                inyectadas.append(kf)
+        meta["keywords_inyectadas"] = inyectadas
         if sugeridas or faltantes:
-            cambios.append(
-                f"{len(sugeridas)} keyword(s) de la vacante integradas en resumen y habilidades")
+            cambios.append(_cambio("keywords",
+                f"{len(inyectadas)} keyword(s) de la vacante integradas en resumen y habilidades"))
 
     # 3. Acronimos -> forma completa (regla Taleo)
     n_acr = _expandir_acronimos_mapa(mapa)
+    meta["n_acronimos"] = n_acr
     if n_acr:
-        cambios.append(f"{n_acr} acrónimo(s) expandidos a su forma completa")
+        cambios.append(_cambio("acronimos", f"{n_acr} acrónimo(s) expandidos a su forma completa"))
 
+    mapa["_meta"] = meta
     return cambios
 
 
@@ -475,6 +490,52 @@ def renderizar_docx(mapa: Dict) -> bytes:
     return buf.getvalue()
 
 
+def renderizar_texto(mapa: Dict) -> str:
+    """Misma reconstrucción que el DOCX pero en texto plano, para la vista previa."""
+    canon = _CANON[mapa["idioma"]]
+    out: List[str] = []
+    if mapa["nombre"]:
+        out.append(mapa["nombre"].upper())
+    if mapa["headline"]:
+        out.append(mapa["headline"])
+
+    contacto = [v for v in (mapa["contacto"]["email"], mapa["contacto"]["telefono"],
+                            mapa["contacto"]["linkedin"], mapa["contacto"]["ubicacion"]) if v]
+    if contacto:
+        out += ["", canon["contacto"], "  |  ".join(contacto)]
+
+    experiencia = [j for _, j in sorted(
+        enumerate(mapa["experiencia"]),
+        key=lambda par: (_clave_fin(par[1]["periodo"]), -par[0]), reverse=True)]
+
+    for tipo in _ORDEN_SECCIONES:
+        if tipo == "resumen":
+            if mapa["resumen"]:
+                out += ["", canon["resumen"], mapa["resumen"]]
+        elif tipo == "experiencia":
+            if experiencia:
+                out += ["", canon["experiencia"]]
+                for job in experiencia:
+                    out.append(job["titulo"])
+                    linea2 = "  |  ".join(x for x in (job["empresa"], job["periodo"]) if x)
+                    if linea2:
+                        out.append(linea2)
+                    out += ["• " + b for b in job["bullets"]]
+        elif mapa[tipo]:
+            out += ["", canon[tipo]]
+            out += [("• " + l) if tipo == "habilidades" else l for l in mapa[tipo]]
+
+    for otro in mapa["otros"]:
+        out += ["", _limpiar(otro["header"]).upper().rstrip(":")]
+        out += otro["lineas"]
+    return "\n".join(out).strip()
+
+
+def _cambio(tipo: str, texto: str) -> Dict:
+    """Cambio tipado para colorear/legendar en la vista previa."""
+    return {"tipo": tipo, "texto": texto}
+
+
 # ---------------------------------------------------------------------------
 # Funcion publica — pipeline completo
 # ---------------------------------------------------------------------------
@@ -486,21 +547,28 @@ def optimizar_cv(texto_cv: str, vacante_texto: str = "") -> Dict:
     """
     mapa, n_fechas = mapear_cv(texto_cv)
 
-    cambios = ["Estructura reconstruida: una columna, sin tablas, gráficos ni iconos",
-               "Secciones renombradas al estándar universal ATS"]
+    cambios = [_cambio("estructura", "Estructura reconstruida: una columna, sin tablas, gráficos ni iconos"),
+               _cambio("secciones", "Secciones renombradas al estándar universal ATS")]
     if n_fechas:
-        cambios.append(f"{n_fechas} fecha(s) normalizadas al formato Mes AAAA")
+        cambios.append(_cambio("fechas", f"{n_fechas} fecha(s) normalizadas al formato Mes AAAA"))
 
     orden_original = [j["titulo"] for j in mapa["experiencia"]]
     cambios += enriquecer(mapa, vacante_texto)
 
     docx = renderizar_docx(mapa)
+    texto_optimizado = renderizar_texto(mapa)
 
     orden_final = [j["titulo"] for _, j in sorted(
         enumerate(mapa["experiencia"]),
         key=lambda par: (_clave_fin(par[1]["periodo"]), -par[0]),
         reverse=True)]
     if len(orden_original) > 1 and orden_original != orden_final:
-        cambios.insert(2, "Experiencia reordenada cronológicamente (más reciente primero)")
+        cambios.insert(2, _cambio("orden", "Experiencia reordenada cronológicamente (más reciente primero)"))
 
-    return {"docx": docx, "mapa": mapa, "cambios": cambios}
+    return {
+        "docx": docx,
+        "mapa": mapa,
+        "cambios": cambios,
+        "texto_optimizado": texto_optimizado,
+        "keywords_inyectadas": mapa.get("_meta", {}).get("keywords_inyectadas", []),
+    }

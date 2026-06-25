@@ -1359,6 +1359,70 @@
   }
 
   // ════════════ Optimizador ATS (pipeline completo) ════════════
+  // ── Vista previa del Optimizador ATS (antes/después con resaltado) ──
+  const _OPTIM_TIPO = {
+    estructura: { c: "#64748b", l: "Estructura" },
+    secciones:  { c: "#2563eb", l: "Secciones renombradas" },
+    fechas:     { c: "#D97706", l: "Fechas normalizadas" },
+    orden:      { c: "#0d9488", l: "Orden cronológico" },
+    verbos:     { c: "#7c3aed", l: "Verbos de acción" },
+    metricas:   { c: "#7c3aed", l: "Métricas de impacto" },
+    cargo:      { c: "#db2777", l: "Cargo objetivo" },
+    keywords:   { c: "#16A34A", l: "Keywords inyectadas" },
+    acronimos:  { c: "#0ea5e9", l: "Acrónimos expandidos" },
+  };
+
+  function _resaltarOptim(texto, keywords) {
+    const headerRe = /^[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ &/]{3,}$/;
+    const dateRe = /\b((?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|apr|aug|dec|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|january|february|march|april|june|july|august|september|october|november|december)[a-zá-ú]*\.?\s+\d{4})\b/gi;
+    const kw = (keywords || []).map(k => (k || "").trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+    const kwRe = kw.length ? new RegExp("(" + kw.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "gi") : null;
+    return texto.split("\n").map(raw => {
+      const esc = escapeHtml(raw);
+      if (headerRe.test(raw.trim())) return `<span style="color:#2563eb;font-weight:700">${esc}</span>`;
+      let l = esc;
+      if (kwRe) l = l.replace(kwRe, m => `<mark style="background:#dcfce7;color:#166534;padding:0 2px;border-radius:3px">${m}</mark>`);
+      l = l.replace(dateRe, m => `<span style="background:#fef3c7;color:#92400e;border-radius:3px;padding:0 2px">${m}</span>`);
+      return l;
+    }).join("\n");
+  }
+
+  function renderOptimPreview(data) {
+    const cambios = (data.cambios || []).map(c => typeof c === "string" ? { tipo: "secciones", texto: c } : c);
+
+    const tipos = [...new Set(cambios.map(c => c.tipo))];
+    document.getElementById("optimizador-leyenda").innerHTML = tipos.map(t => {
+      const m = _OPTIM_TIPO[t] || { c: "#64748b", l: t };
+      return `<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.74rem;font-weight:600;color:${m.c};background:${m.c}1a;border:1px solid ${m.c}55;border-radius:999px;padding:.15rem .6rem"><span style="width:8px;height:8px;border-radius:50%;background:${m.c}"></span>${escapeHtml(m.l)}</span>`;
+    }).join("");
+
+    document.getElementById("optimizador-cambios").innerHTML = cambios.map(c => {
+      const m = _OPTIM_TIPO[c.tipo] || { c: "#16A34A" };
+      return `<li><i class="ti ti-point-filled" style="color:${m.c};margin-right:.35rem" aria-hidden="true"></i>${escapeHtml(c.texto)}</li>`;
+    }).join("");
+
+    const kws = data.keywords_inyectadas || [];
+    document.getElementById("optimizador-keywords").innerHTML = kws.length
+      ? `<div style="font-size:.82rem"><strong>Keywords de la vacante inyectadas:</strong> ` +
+        kws.map(k => `<mark style="background:#dcfce7;color:#166534;padding:0 4px;border-radius:3px;margin:0 2px">${escapeHtml(k)}</mark>`).join("") + `</div>`
+      : "";
+
+    document.getElementById("optimizador-original").textContent = data.texto_original || "";
+    document.getElementById("optimizador-optimizado").innerHTML = _resaltarOptim(data.texto_optimizado || "", kws);
+
+    // La descarga aparece SOLO después de pintar la vista previa.
+    const btn = document.getElementById("plantilla-download");
+    btn.onclick = () => {
+      const bytes = Uint8Array.from(atob(data.archivo_base64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = data.nombre; a.click();
+      URL.revokeObjectURL(url);
+    };
+    document.getElementById("optimizador-descarga").style.display = "block";
+  }
+
   async function optimizarCV(fuente) {
     const src = _fuenteCV(fuente);
     if (!src) return;
@@ -1376,23 +1440,7 @@
 
       document.getElementById("plantilla-antes").textContent = data.score_antes != null ? data.score_antes : "—";
       document.getElementById("plantilla-despues").textContent = data.score_despues != null ? data.score_despues : "—";
-
-      const ul = document.getElementById("optimizador-cambios");
-      ul.innerHTML = "";
-      (data.cambios || []).forEach(c => {
-        ul.innerHTML += `<li><i class="ti ti-check" style="color:var(--green);margin-right:.4rem" aria-hidden="true"></i>${escapeHtml(c)}</li>`;
-      });
-
-      const btn = document.getElementById("plantilla-download");
-      btn.onclick = () => {
-        const bytes = Uint8Array.from(atob(data.archivo_base64), c => c.charCodeAt(0));
-        const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = data.nombre; a.click();
-        URL.revokeObjectURL(url);
-      };
-
+      renderOptimPreview(data);
       resultado.style.display = "block";
       status.className = "upload-status ok";
       status.textContent = "✅ " + src.nombre + " optimizado";

@@ -313,6 +313,10 @@ async def optimizar_cv_endpoint(
         "score_antes_nota": score_antes_nota,
         "score_despues": score_despues,
         "cambios": resultado["cambios"],
+        # Vista previa antes/después (el usuario ve qué cambió antes de descargar).
+        "texto_original": texto,
+        "texto_optimizado": resultado.get("texto_optimizado", ""),
+        "keywords_inyectadas": resultado.get("keywords_inyectadas", []),
     }
 
 
