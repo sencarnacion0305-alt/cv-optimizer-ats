@@ -428,7 +428,13 @@ def calcular_metricas(cv: str, vacante: str = "") -> Dict:
         _m_vendor_risk(m_parse["score"] or 0, m_format["score"] or 0),
     ]
 
-    # Score global: media de las métricas aplicables.
+    # ── REGLA DE N/A (manejo transparente de la agregación) ───────────────────
+    # Una métrica N/A (no aplicable, p.ej. Title Match sin vacante, o Measurable
+    # Impact sin viñetas) NUNCA cuenta como acierto. Se EXCLUYE del promedio: cada
+    # agregado se recalcula SOLO sobre las métricas aplicables. Por eso una categoría
+    # solo llega a 100 si TODAS sus métricas aplicables están realmente al máximo, y
+    # cada agregado expone "aplicables/total" para que la UI explique la base.
+    # Si TODAS las métricas de una categoría son N/A -> score None (pendiente), no 0 ni 100.
     aplicables = [m["score"] for m in metricas if m["aplica"]]
     score_global = _c(sum(aplicables) / len(aplicables)) if aplicables else 0
 
@@ -445,10 +451,21 @@ def calcular_metricas(cv: str, vacante: str = "") -> Dict:
     por_categoria = {cat: [m for m in metricas if m["categoria"] == cat]
                      for cat in CATEGORIAS}
 
+    # Agregado por categoría aplicando la regla de N/A + cobertura (aplicables/total).
+    def _agg(items):
+        apt = [m["score"] for m in items if m["aplica"]]
+        return {"score": (_c(sum(apt) / len(apt)) if apt else None),
+                "aplicables": len(apt), "total": len(items)}
+
+    resumen_categorias = {cat: _agg(por_categoria[cat]) for cat in CATEGORIAS}
+    cobertura_global = {"aplicables": len(aplicables), "total": len(metricas)}
+
     return {
         "score_global": score_global,
+        "cobertura_global": cobertura_global,
         "categorias": CATEGORIAS,
         "metricas": metricas,
         "por_categoria": por_categoria,
+        "resumen_categorias": resumen_categorias,
         "prioritarias": prioritarias,
     }

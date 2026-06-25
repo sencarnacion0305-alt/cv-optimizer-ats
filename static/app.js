@@ -977,8 +977,10 @@
     const numEl = document.getElementById("metricas-score-number");
     numEl.style.color = color;
     animarNumero(numEl, 0, score, 1000);
+    const cg = d.cobertura_global;
+    const baseG = cg ? ` Basado en ${cg.aplicables} de ${cg.total} métricas aplicables; las N/A se excluyen (nunca cuentan como 100).` : "";
     document.getElementById("metricas-resumen").textContent =
-      "Media de las métricas aplicables. Cuanto más alto, más competitivo es tu CV frente a los filtros ATS.";
+      "Media de las métricas aplicables." + baseG;
 
     const pc = document.getElementById("metricas-prioritarias-card");
     const ol = document.getElementById("metricas-prioritarias");
@@ -992,9 +994,12 @@
       pc.style.display = "none";
     }
 
-    // Radar de promedios por categoría
+    // Agregado por categoría con la regla de N/A (excluye no aplicables) + cobertura.
+    const _cov = cat => (d.resumen_categorias && d.resumen_categorias[cat]) || null;
     const catAvg = cat => {
-      const items = (d.por_categoria && d.por_categoria[cat]) || [];
+      const c = _cov(cat);
+      if (c) return c.score == null ? 0 : c.score;
+      const items = (d.por_categoria && d.por_categoria[cat]) || [];   // respaldo
       const ap = items.filter(m => m.aplica).map(m => m.score);
       return ap.length ? Math.round(ap.reduce((a, b) => a + b, 0) / ap.length) : 0;
     };
@@ -1030,10 +1035,15 @@
           <div style="font-size:.82rem;margin-top:.2rem"><strong>Sugerencia:</strong> ${escapeHtml(m.recomendacion)}</div>
         </div>`;
       }).join("");
+      const cov = _cov(cat);
+      const base = (cov && cov.aplicables < cov.total)
+        ? ` <span style="color:var(--muted);font-weight:400;font-size:.76rem">· ${cov.aplicables} de ${cov.total} métricas</span>`
+        : "";
+      const scoreTxt = (cov && cov.score == null) ? "—" : avg;
       return `<div class="card" style="margin-bottom:1rem">
         <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
           <span>${escapeHtml(cat)}</span>
-          <span style="font-size:.85rem;font-weight:700;color:${_colMetrica(avg)}">${avg}<span style="color:var(--muted);font-weight:400">/100</span></span>
+          <span style="font-size:.85rem;font-weight:700;color:${_colMetrica(avg)}">${scoreTxt}<span style="color:var(--muted);font-weight:400">/100</span>${base}</span>
         </div>
         ${filas}
       </div>`;
