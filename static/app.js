@@ -1327,6 +1327,31 @@
 
   function renderComparar(d) {
     document.getElementById("comparar-resumen").textContent = d.resumen;
+
+    // Radar de skills del sector: cobertura del mercado + gap priorizado.
+    const radarCard = document.getElementById("comparar-radar-card");
+    if (d.cobertura_mercado != null) {
+      const cob = d.cobertura_mercado;
+      const circ = 2 * Math.PI * 54;
+      const fill = document.getElementById("comparar-cob-fill");
+      fill.style.strokeDashoffset = circ - (cob / 100) * circ;
+      const col = cob >= 75 ? "#16A34A" : cob >= 50 ? "#D97706" : "#DC2626";
+      fill.style.stroke = col;
+      const num = document.getElementById("comparar-cob-num");
+      num.style.color = col;
+      animarNumero(num, 0, cob, 900);
+      const gap = d.gap || [];
+      document.getElementById("comparar-gap").innerHTML = gap.length
+        ? `<div style="font-size:.84rem;font-weight:600;margin-bottom:.35rem">Te falta (priorizado por demanda):</div>` +
+          gap.slice(0, 12).map(g => {
+            const c = g.categoria === "imprescindible" ? "#DC2626" : g.categoria === "muy_pedida" ? "#D97706" : "#64748b";
+            return `<span class="chip" style="background:${c}1a;color:${c};border:1px solid ${c}55;margin:0 .25rem .3rem 0">${escapeHtml(g.keyword)}<span class="chip-count">${g.frecuencia}/${g.total}</span></span>`;
+          }).join("")
+        : `<div style="font-size:.86rem;color:#166534">✓ Cubres todas las skills del mercado detectadas. Excelente.</div>`;
+      radarCard.style.display = "block";
+    } else {
+      radarCard.style.display = "none";
+    }
     const grupos = {
       imprescindible: { el: "comparar-imp", bg: "rgba(239,68,68,.15)",  col: "#DC2626" },
       muy_pedida:     { el: "comparar-muy", bg: "rgba(245,158,11,.12)", col: "#B45309" },
