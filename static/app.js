@@ -967,6 +967,52 @@
     }
   }
 
+  function _barKw(it) {
+    const exp = Math.max(1, it.freq_vacante);
+    const pct = Math.min(100, Math.round(it.freq_cv / exp * 100));
+    const col = it.sobreoptimizada ? "#DC2626" : (it.cubierta ? "#16A34A" : "#D97706");
+    return `<div style="height:6px;background:#eef2f7;border-radius:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${col}"></div></div>`;
+  }
+
+  function renderKeywordsDetalle(kd) {
+    const card = document.getElementById("metricas-keywords-card");
+    const box = document.getElementById("metricas-keywords");
+    const items = (kd && kd.items) || [];
+    if (!items.length) { card.style.display = "none"; box.innerHTML = ""; return; }
+
+    const TIPO = {
+      title: { l: "Cargo / Título", c: "#db2777" },
+      hard:  { l: "Hard skills", c: "#2563eb" },
+      tool:  { l: "Herramientas / Plataformas", c: "#0d9488" },
+      soft:  { l: "Soft skills", c: "#7c3aed" },
+    };
+    const porTipo = kd.por_tipo || {};
+
+    const fila = it => {
+      const falta = Math.max(0, it.freq_vacante - it.freq_cv);
+      const estadoCol = it.sobreoptimizada ? "#DC2626" : (it.cubierta ? "#16A34A" : "#D97706");
+      const badge = it.sobreoptimizada
+        ? `<span style="font-size:.7rem;font-weight:700;color:#DC2626;background:#fee2e2;border-radius:999px;padding:.05rem .5rem">sobreoptimizada</span>`
+        : (it.cubierta
+            ? `<span style="font-size:.7rem;color:#166534;background:#dcfce7;border-radius:999px;padding:.05rem .5rem">✓ cubierta</span>`
+            : `<span style="font-size:.7rem;color:#92400e;background:#fef3c7;border-radius:999px;padding:.05rem .5rem">falta ${falta}</span>`);
+      return `<div style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-top:1px solid #eef2f7">
+        <div style="flex:1;min-width:0;font-size:.86rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(it.keyword)}</div>
+        <div style="font-size:.78rem;color:var(--muted);white-space:nowrap">vacante <strong style="color:var(--text)">${it.freq_vacante}</strong> · CV <strong style="color:${estadoCol}">${it.freq_cv}</strong></div>
+        <div style="width:80px;flex-shrink:0">${_barKw(it)}</div>
+        <div style="width:108px;flex-shrink:0;text-align:right">${badge}</div>
+      </div>`;
+    };
+
+    box.innerHTML = ["title", "hard", "tool", "soft"]
+      .filter(t => porTipo[t] && porTipo[t].length)
+      .map(t => `<div style="margin-bottom:.7rem">
+        <div style="font-size:.74rem;font-weight:700;color:${TIPO[t].c};text-transform:uppercase;letter-spacing:.03em;margin-bottom:.15rem">${TIPO[t].l}</div>
+        ${porTipo[t].map(fila).join("")}
+      </div>`).join("");
+    card.style.display = "block";
+  }
+
   function renderMetricas(d) {
     const score = d.score_global || 0;
     const circumference = 2 * Math.PI * 54;
@@ -1005,6 +1051,8 @@
     };
     const radarCats = (d.categorias || []).map(cat => ({ label: _shortCat(cat), score: catAvg(cat) }));
     document.getElementById("metricas-radar").innerHTML = _radarMetricas(radarCats);
+
+    renderKeywordsDetalle(d.keywords_detalle);
 
     const cont = document.getElementById("metricas-grupos");
     cont.innerHTML = (d.categorias || []).map(cat => {

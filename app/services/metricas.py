@@ -23,7 +23,7 @@ from app.services.adaptador import (
 from app.services.parser_ats import simular_parsing
 from app.services.requisitos import analizar_requisitos
 from app.core.constantes import SOFT_SKILLS
-from app.core.cv_analyzer import calcular_calidad, bullets_de
+from app.core.cv_analyzer import calcular_calidad, bullets_de, analizar_keywords
 from app.services.mejorador_bullets import tiene_metrica
 
 
@@ -468,4 +468,6 @@ def calcular_metricas(cv: str, vacante: str = "") -> Dict:
         "por_categoria": por_categoria,
         "resumen_categorias": resumen_categorias,
         "prioritarias": prioritarias,
+        # Densidad/recuento de keywords con sinónimos (estilo Jobscan).
+        "keywords_detalle": analizar_keywords(cv, vacante),
     }

@@ -436,6 +436,80 @@ def calcular_score_compuesto(cv: str, vacante: str, cubiertas: List[str],
 
 
 # ---------------------------------------------------------------------------
+# Densidad / recuento de keywords (estilo Jobscan) con sinónimos y tipos
+# ---------------------------------------------------------------------------
+
+def analizar_keywords(cv: str, vacante: str = "") -> Dict:
+    """
+    Para cada keyword de la vacante: nº de apariciones en la vacante vs. en el CV
+    (con normalización por sinónimos: JS=JavaScript, K8s=Kubernetes, AWS=Amazon Web
+    Services). Clasifica en title / hard / soft / tool y marca sobreoptimización
+    (keyword stuffing) cuando la frecuencia en el CV es anómalamente alta.
+    Reutiliza el motor único: alias, _keywords_de y la detección de cargo.
+    """
+    cv = cv or ""
+    vacante = vacante or ""
+    n_pal = max(1, len(cv.split()))
+    if not vacante.strip():
+        return {"items": [], "por_tipo": {}, "sobreoptimizadas": [], "n_palabras_cv": n_pal}
+
+    from app.services.keyword_aliases import canonicalizar, canonicalizar_texto, frecuencia
+    from app.services.metricas import TOOLS
+    from app.services.adaptador_docx import _formato_keyword
+
+    cv_canon = canonicalizar_texto(cv)
+    vac_canon = canonicalizar_texto(vacante)
+    soft_norm = {norm_alias(s) for s in K.SOFT_SKILLS}
+
+    candidatos: Dict[str, tuple] = {}   # canon -> (display, tipo)
+    titulo = _detectar_titulo_vacante(vacante)
+    if titulo:
+        candidatos[canonicalizar(titulo)] = (titulo, "title")
+
+    for kw in _keywords_de(vacante):
+        canon = canonicalizar(kw)
+        if canon in candidatos:
+            continue
+        if norm_alias(kw) in soft_norm:
+            tipo = "soft"
+        elif any(re.search(p, kw.lower()) for p in TOOLS.values()):
+            tipo = "tool"
+        else:
+            tipo = "hard"
+        candidatos[canon] = (_formato_keyword(kw), tipo)
+
+    # Soft skills nombradas en la vacante (el extractor técnico no las captura).
+    vac_low = vacante.lower()
+    for s in sorted(K.SOFT_SKILLS):
+        if re.search(r"\b" + re.escape(s.lower()) + r"\b", vac_low):
+            candidatos.setdefault(canonicalizar(s), (s[:1].upper() + s[1:], "soft"))
+
+    items = []
+    for canon, (display, tipo) in candidatos.items():
+        fv = frecuencia(canon, vac_canon) or 1
+        fc = frecuencia(canon, cv_canon)
+        # Sobreoptimización: repetida 4+ veces y muy por encima de lo que pide la vacante.
+        sobre = fc >= 4 and fc > max(3, fv * 2)
+        items.append({
+            "keyword": display, "tipo": tipo,
+            "freq_vacante": fv, "freq_cv": fc, "cubierta": fc > 0,
+            "densidad": round(fc / n_pal * 100, 2), "sobreoptimizada": sobre,
+        })
+
+    orden = {"title": 0, "hard": 1, "tool": 2, "soft": 3}
+    items.sort(key=lambda i: (orden.get(i["tipo"], 9), -i["freq_vacante"], i["keyword"].lower()))
+
+    por_tipo: Dict[str, list] = {}
+    for it in items:
+        por_tipo.setdefault(it["tipo"], []).append(it)
+    return {
+        "items": items, "por_tipo": por_tipo,
+        "sobreoptimizadas": [i for i in items if i["sobreoptimizada"]],
+        "n_palabras_cv": n_pal,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Función pública: objeto normalizado completo (lo consume /api/v1/analyze)
 # ---------------------------------------------------------------------------
 
@@ -486,6 +560,7 @@ def analizar_cv(cv: str, vacante: str = "") -> Dict:
             "soft_cubiertas": compuesto["soft_cubiertas"],
             "soft_faltantes": compuesto["soft_faltantes"],
         },
+        "keywords_detalle": analizar_keywords(cv, vacante),
         "seniority": requisitos.get("seniority"),
         "calidad": calidad,
         "formato": formato,

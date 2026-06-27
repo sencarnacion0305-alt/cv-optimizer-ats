@@ -142,6 +142,42 @@ def son_equivalentes(a: str, b: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Conteo de frecuencia con sinónimos (densidad de keywords, estilo Jobscan)
+# ---------------------------------------------------------------------------
+# Reemplazos: cada variante normalizada -> token canónico "junto" (con "_"),
+# ordenados por nº de palabras desc para consumir las frases largas primero
+# (así "node js" se sustituye antes que "js" y no se cuenta dos veces).
+_REEMPLAZOS = []
+for _grupo in GRUPOS:
+    _tok = norm_alias(_grupo[0]).replace(" ", "_")
+    for _v in _grupo:
+        _REEMPLAZOS.append((norm_alias(_v), _tok))
+_REEMPLAZOS.sort(key=lambda x: (x[0].count(" "), len(x[0])), reverse=True)
+_REEMPLAZOS = [(re.compile(r"(?<![\w])" + re.escape(_v) + r"(?![\w])"), _t)
+               for _v, _t in _REEMPLAZOS]
+
+
+def canonicalizar_texto(texto: str) -> str:
+    """Texto normalizado con cada variante de sinónimo sustituida por su token
+    canónico (AWS/Amazon Web Services -> amazon_web_services). Permite contar
+    todas las variantes como la misma keyword."""
+    t = norm_alias(texto)
+    for rx, tok in _REEMPLAZOS:
+        t = rx.sub(tok, t)
+    return t
+
+
+def frecuencia(termino: str, texto_canon: str) -> int:
+    """Nº de apariciones de un término (incluyendo sinónimos) en un texto ya
+    canonicalizado con `canonicalizar_texto`."""
+    canon = canonicalizar(termino)
+    if not canon:
+        return 0
+    aguja = canon.replace(" ", "_") if canon in _CANON_A_CLAVES else canon
+    return len(re.findall(r"(?<![\w])" + re.escape(aguja) + r"(?![\w])", texto_canon))
+
+
+# ---------------------------------------------------------------------------
 # Fallback de similitud (conservador, configurable, opcional)
 # ---------------------------------------------------------------------------
 
