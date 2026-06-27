@@ -1562,6 +1562,45 @@
     return `<div class="trk-stat"><div class="n" style="color:${color}">${n}</div><div class="l">${label}</div></div>`;
   }
 
+  // Embudo: tasa de entrevista por rango de score ATS (mismo cálculo que el backend).
+  const _TRK_RANGOS = [["0-59", 0, 59], ["60-74", 60, 74], ["75-84", 75, 84], ["85-100", 85, 100]];
+  const _ENVIADAS = ["enviado", "entrevista", "oferta", "rechazado"];
+  function _trkScore(a) { const n = parseInt(a.score, 10); return isNaN(n) ? 0 : Math.max(0, Math.min(100, n)); }
+
+  function renderTrkFunnel(apps) {
+    const card = document.getElementById("trk-funnel-card");
+    const box = document.getElementById("trk-funnel");
+    if (!card || !box) return;
+    const enviadas = apps.filter(a => _ENVIADAS.includes(a.estado));
+    if (!enviadas.length) { card.style.display = "none"; box.innerHTML = ""; return; }
+    box.innerHTML = _TRK_RANGOS.map(([label, lo, hi]) => {
+      const en = enviadas.filter(a => { const s = _trkScore(a); return s >= lo && s <= hi; });
+      const ent = en.filter(a => a.estado === "entrevista" || a.estado === "oferta");
+      const tasa = en.length ? Math.round(ent.length / en.length * 100) : null;
+      const col = tasa == null ? "#94a3b8" : tasa >= 50 ? "#16A34A" : tasa >= 25 ? "#D97706" : "#DC2626";
+      return `<div style="display:flex;align-items:center;gap:.7rem;padding:.35rem 0">
+        <div style="width:62px;font-size:.82rem;font-weight:600">${label}</div>
+        <div style="flex:1;height:8px;background:#eef2f7;border-radius:6px;overflow:hidden"><div style="height:100%;width:${tasa == null ? 0 : tasa}%;background:${col}"></div></div>
+        <div style="width:120px;text-align:right;font-size:.8rem;color:var(--muted)">${tasa == null ? "—" : `<strong style="color:${col}">${tasa}%</strong>`} · ${ent.length}/${en.length}</div>
+      </div>`;
+    }).join("");
+    card.style.display = "block";
+  }
+
+  async function trkSyncTest() {
+    const st = document.getElementById("trk-sync-status");
+    if (!st) return;
+    st.textContent = "Probando…";
+    try {
+      const r = await fetch("/api/v1/tracker");
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) st.innerHTML = `<span style="color:#166534">✓ Sincronización activa.</span>`;
+      else st.innerHTML = `<span style="color:#92400e">⚙️ ${escapeHtml(j.detail || ("Sync no configurada (modo local activo). Error " + r.status))}</span>`;
+    } catch (e) {
+      st.innerHTML = `<span style="color:#DC2626">No se pudo contactar el servidor.</span>`;
+    }
+  }
+
   function trkRender() {
     const apps = trkCargar();
     const conteo = { borrador:0, enviado:0, entrevista:0, oferta:0, rechazado:0 };
@@ -1573,6 +1612,8 @@
       trkStatCard(conteo.enviado, "Enviadas", "#1D4ED8") +
       trkStatCard(conteo.entrevista, "Entrevistas", "#B45309") +
       trkStatCard(conteo.oferta, "Ofertas", "#15803D");
+
+    renderTrkFunnel(apps);
 
     const lista = document.getElementById("trk-lista");
     if (!lista) return;
@@ -1702,6 +1743,7 @@
       "agregar-vacante": () => agregarVacante(),
       "comparar-vacantes": () => compararVacantes(),
       "trk-agregar": () => trkAgregar(),
+      "trk-sync-test": () => trkSyncTest(),
       "trk-filtrar": (el) => trkFiltrar(el.dataset.arg, el),
       "export-csv": () => exportarCSV(),
       "trk-eliminar": (el) => trkEliminar(Number(el.dataset.arg)),

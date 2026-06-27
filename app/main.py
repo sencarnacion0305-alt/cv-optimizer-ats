@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from app.routers import cv
+from app.routers import cv, tracker
 import os
 
 app = FastAPI(
@@ -77,6 +77,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Registrar rutas de la API
 app.include_router(cv.router, prefix="/api/v1", tags=["CV"])
+app.include_router(tracker.router, prefix="/api/v1", tags=["Tracker"])
 
 
 @app.get("/", include_in_schema=False)

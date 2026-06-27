@@ -1944,6 +1944,26 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 
     <div class="trk-stats" id="trk-stats"></div>
 
+    <div class="card" id="trk-funnel-card" style="margin-bottom:1.25rem;display:none">
+      <div class="card-title"><i class="ti ti-filter" aria-hidden="true"></i> Embudo: tasa de entrevista por score ATS</div>
+      <p style="font-size:.82rem;color:var(--muted);margin:.2rem 0 .8rem">
+        De las aplicaciones que <strong style="color:var(--text)">enviaste</strong>, qué porcentaje llegó a entrevista según el score ATS del CV. Te indica si subir el score mejora tus resultados.
+      </p>
+      <div id="trk-funnel"></div>
+    </div>
+
+    <div class="card" id="trk-sync-card" style="margin-bottom:1.25rem">
+      <div class="card-title"><i class="ti ti-cloud" aria-hidden="true"></i> Sincronización en la nube</div>
+      <p style="font-size:.84rem;color:var(--muted);margin:.3rem 0 .7rem">
+        Tus aplicaciones se guardan <strong style="color:var(--text)">solo en este navegador</strong> (modo privado). La sincronización en la nube —para verlas en cualquier dispositivo— está
+        <strong style="color:var(--text)">preparada a nivel de arquitectura</strong> (esquema, capa de datos y endpoints) pero requiere configurar una cuenta. El modo local seguirá disponible siempre.
+      </p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+        <button class="btn-upload" data-act="trk-sync-test"><i class="ti ti-cloud-up" aria-hidden="true"></i> Probar sincronización</button>
+        <span id="trk-sync-status" style="font-size:.82rem;color:var(--muted)"></span>
+      </div>
+    </div>
+
     <div class="card" style="margin-bottom:1.25rem">
       <div class="card-title"><i class="ti ti-plus" aria-hidden="true"></i> Añadir aplicación</div>
       <p style="font-size:.84rem;color:var(--muted);margin:.3rem 0 1rem">
