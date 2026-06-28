@@ -69,11 +69,13 @@ def _secciones_y_seg(cv: str) -> Tuple[Dict[str, bool], Dict[str, List[str]]]:
     if not pres["habilidades"]:
         pres["habilidades"] = len(_detectar_skills(cv)) >= K.SKILLS_MIN_PARA_SECCION
 
-    # Resumen: exige SUSTANCIA (>30 palabras), en su sección o como párrafo de
-    # encabezado sin título (caso común: el resumen va bajo el nombre, sin "Summary").
+    # Resumen presente si HAY un encabezado reconocido (Resumen/Perfil/Summary/…) con
+    # algo de contenido —sin exigir longitud mínima— o, si no hay título, un párrafo
+    # de presentación bajo el nombre con sustancia (>30 palabras).
     resumen_palabras = len(" ".join(seg.get("resumen", [])).split())
     enc_palabras = len(" ".join(seg.get("encabezado", [])).split())
-    pres["resumen"] = (resumen_palabras > K.RESUMEN_MIN_PALABRAS
+    pres["resumen"] = (bool(seg.get("resumen"))
+                       or resumen_palabras > K.RESUMEN_MIN_PALABRAS
                        or enc_palabras > K.RESUMEN_MIN_PALABRAS + 5)
     return pres, seg
 
