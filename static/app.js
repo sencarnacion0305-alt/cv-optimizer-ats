@@ -103,6 +103,15 @@
     return stuffed.length > 2;
   }
 
+  // Icono de estado pass/fail/warn: 3 formas distintas (✓/⚠/✗) + etiqueta accesible,
+  // para no depender solo del color (legible para daltónicos y lectores de pantalla).
+  function _icoEstado(estado, color) {
+    const ico = { ok: "circle-check", warning: "alert-triangle", error: "circle-x" }[estado] || "minus";
+    const aria = { ok: "Correcto", warning: "Advertencia", error: "Falta" }[estado] || "Pendiente";
+    const col = color ? ` style="color:${color}"` : "";
+    return `<i class="ti ti-${ico}"${col} role="img" aria-label="${aria}"></i>`;
+  }
+
   function renderDiagnostico(cvText) {
     const cont = document.getElementById("cv-diagnostico");
     if (!cont) return;
@@ -142,9 +151,8 @@
 
     let html = `<div class="section-title" style="margin-bottom:.5rem"><i class="ti ti-list-check" aria-hidden="true"></i> Diagnóstico del CV</div>`;
     items.forEach(it => {
-      const icono = it.estado === "ok" ? "circle-check" : "alert-triangle";
       html += `<div class="ats-check ${it.estado}" style="margin-bottom:.4rem">
-          <span class="ico"><i class="ti ti-${icono}" aria-hidden="true"></i></span>
+          <span class="ico">${_icoEstado(it.estado)}</span>
           <div class="body"><div class="t" style="font-size:.84rem">${escapeHtml(it.t)}</div>
           <div class="d">${escapeHtml(it.d)}</div></div>
         </div>`;
@@ -211,10 +219,8 @@
     let filas = "";
     const fila = (ok, label, detalle) => {
       const estado = ok === true ? "ok" : ok === false ? "error" : "warning";
-      const ico = ok === true ? "circle-check" : ok === false ? "circle-x" : "minus";
-      const col = ok === true ? "var(--green)" : ok === false ? "var(--red)" : "var(--muted)";
       filas += `<div class="ats-check ${estado}" style="margin-bottom:.4rem">
-          <span class="ico"><i class="ti ti-${ico}" style="color:${col}" aria-hidden="true"></i></span>
+          <span class="ico">${_icoEstado(estado)}</span>
           <div class="body"><div class="t" style="font-size:.85rem">${escapeHtml(label)}</div>
           <div class="d">${escapeHtml(detalle)}</div></div></div>`;
     };
@@ -283,9 +289,9 @@
         const pct = dim.max ? Math.round(dim.puntos / dim.max * 100) : 0;
         const c = pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626";
         const checksHtml = dim.checks.map(ch => {
+          const estadoCh = ch.ok ? "ok" : (ch.pts > 0 ? "warning" : "error");
           const col = ch.ok ? "var(--green)" : (ch.pts > 0 ? "var(--orange)" : "var(--red)");
-          const ico = ch.ok ? "circle-check" : (ch.pts > 0 ? "alert-triangle" : "circle-x");
-          return `<div class="chk-item"><i class="ti ti-${ico}" style="color:${col}" aria-hidden="true"></i><span>${escapeHtml(ch.label)} <span style="color:var(--muted)">(${ch.pts}/${ch.max})</span></span></div>`;
+          return `<div class="chk-item">${_icoEstado(estadoCh, col)}<span>${escapeHtml(ch.label)} <span style="color:var(--muted)">(${ch.pts}/${ch.max})</span></span></div>`;
         }).join("");
         html += `<details class="score-dim">
             <summary>
@@ -812,7 +818,6 @@
   function renderChecklist(categorias) {
     const PTS = { ok: 5, warning: 2, error: 0 };
     const COL = { ok: "var(--green)", warning: "var(--orange)", error: "var(--red)" };
-    const ICO = { ok: "circle-check", warning: "alert-triangle", error: "circle-x" };
     let total = 0;
     let cats = "";
     categorias.forEach(cat => {
@@ -821,7 +826,7 @@
       const pct = Math.round(cp / 25 * 100);
       const barC = pct >= 80 ? "#16A34A" : pct >= 50 ? "#D97706" : "#DC2626";
       const items = cat.checks.map(ch =>
-        `<div class="chk-item"><i class="ti ti-${ICO[ch.estado]}" style="color:${COL[ch.estado]}" aria-hidden="true"></i><span>${escapeHtml(ch.label)}</span></div>`).join("");
+        `<div class="chk-item">${_icoEstado(ch.estado, COL[ch.estado])}<span>${escapeHtml(ch.label)}</span></div>`).join("");
       cats += `<details class="chk-cat" open>
           <summary><span class="chk-cat-name">${escapeHtml(cat.nombre)}</span><span class="chk-cat-pts">${cp}/25</span></summary>
           <div class="ats-cat-bar" style="margin:.5rem 0 .6rem"><span style="width:${pct}%;background:${barC}"></span></div>
@@ -1153,7 +1158,6 @@
     // Categorías
     const cont = document.getElementById("ats-categorias");
     cont.innerHTML = "";
-    const ICO = { ok: '<i class="ti ti-circle-check" aria-hidden="true"></i>', warning: '<i class="ti ti-alert-triangle" aria-hidden="true"></i>', error: '<i class="ti ti-circle-x" aria-hidden="true"></i>' };
     d.categorias.forEach(cat => {
       const tienePts = cat.max_puntos > 0;
       const pct = tienePts ? Math.round(cat.puntos / cat.max_puntos * 100) : 0;
@@ -1163,7 +1167,7 @@
       cat.checks.forEach(ch => {
         checksHtml += `
           <div class="ats-check ${ch.estado}">
-            <span class="ico">${ICO[ch.estado] || "•"}</span>
+            <span class="ico">${_icoEstado(ch.estado)}</span>
             <div class="body">
               <div class="t">${escapeHtml(ch.titulo)}</div>
               <div class="d">${escapeHtml(ch.detalle)}</div>
