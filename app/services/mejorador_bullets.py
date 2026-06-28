@@ -7,7 +7,7 @@ Tambien marca los bullets que carecen de metricas cuantificables.
 """
 
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # Frase debil inicial -> verbo de accion por defecto (si no hay gerundio detras)
 MAPEO_DEBIL = {
@@ -209,35 +209,63 @@ def _categoria_metrica(texto_low: str) -> str:
     return "default"
 
 
-def sufijo_metrica(bullet: str, contadores: Dict[str, int], sector: str = "tech") -> str:
+def sufijo_metrica(bullet: str, contadores: Dict[str, int], sector: str = "tech",
+                   usados: Optional[set] = None) -> str:
     """
     Devuelve un sufijo de impacto cuantificado APROPIADO AL SECTOR del candidato,
-    rotando entre variantes y evitando las que repiten palabras del bullet.
-    Para sectores no técnicos no se usa jerga de IT/ciberseguridad.
+    SIN repetir una plantilla ya usada en el mismo CV (`usados`): así dos bullets
+    distintos no reciben la misma mejora. Si se agota el pool de la categoría, busca
+    en otras categorías del sector; solo repite cuando TODAS están usadas.
     """
+    if usados is None:
+        usados = set()
     low = bullet.lower()
-    if sector == "tech":
-        cat = _categoria_metrica(low)
-        opciones = _PLANTILLAS_METRICA.get(cat, _PLANTILLAS_METRICA["default"])
-    else:
-        cat = sector
-        opciones = _PLANTILLAS_SECTOR.get(sector, _PLANTILLAS_SECTOR["general"])
+    pools = _PLANTILLAS_METRICA if sector == "tech" else _PLANTILLAS_SECTOR
+    cat = _categoria_metrica(low) if sector == "tech" else sector
+    opciones = pools.get(cat, _PLANTILLAS_METRICA["default"] if sector == "tech"
+                         else _PLANTILLAS_SECTOR["general"])
+
+    def _repite_palabra(cand: str) -> bool:
+        return any(w in low for w in re.findall(r"[a-z]{5,}", cand.lower()))
+
     i = contadores.get(cat, 0)
+    elegido = None
+    # 1ª pasada: opción NO usada en el CV y que no repita palabras del bullet.
     for k in range(len(opciones)):
         cand = opciones[(i + k) % len(opciones)]
-        palabras = re.findall(r"[a-z]{5,}", cand.lower())
-        if not any(w in low for w in palabras):  # evita repetir palabras del bullet
-            contadores[cat] = i + k + 1
-            return _a_placeholder(cand)
-    contadores[cat] = i + 1
-    return _a_placeholder(opciones[i % len(opciones)])
+        if cand not in usados and not _repite_palabra(cand):
+            elegido, contadores[cat] = cand, i + k + 1
+            break
+    # 2ª: cualquier opción de la categoría aún no usada.
+    if elegido is None:
+        for k in range(len(opciones)):
+            cand = opciones[(i + k) % len(opciones)]
+            if cand not in usados:
+                elegido, contadores[cat] = cand, i + k + 1
+                break
+    # 3ª: si la categoría está agotada, una NO usada de otra categoría del sector.
+    if elegido is None:
+        for pool in pools.values():
+            for cand in pool:
+                if cand not in usados and not _repite_palabra(cand):
+                    elegido = cand
+                    break
+            if elegido:
+                break
+    # 4ª: todo usado -> rota normal (se permite repetir como último recurso).
+    if elegido is None:
+        elegido = opciones[i % len(opciones)]
+        contadores[cat] = i + 1
+
+    usados.add(elegido)
+    return _a_placeholder(elegido)
 
 
 def agregar_metrica_a_bullet(bullet: str, contadores: Dict[str, int],
-                             sector: str = "tech") -> str:
+                             sector: str = "tech", usados: Optional[set] = None) -> str:
     """Agrega una metrica cuantificada al final del bullet (si no tiene ya numeros)."""
     base = bullet.rstrip().rstrip(".")
-    return base + ", " + sufijo_metrica(bullet, contadores, sector) + "."
+    return base + ", " + sufijo_metrica(bullet, contadores, sector, usados) + "."
 
 
 def tiene_metrica(texto: str) -> bool:
@@ -320,6 +348,7 @@ def mejorar_bullets(cv_texto: str) -> Dict:
 
     mejoras: List[Dict] = []
     contadores: Dict[str, int] = {}
+    usados: set = set()          # plantillas ya usadas en este CV (evita repetición)
     n_verbos = n_metricas = 0
 
     for linea in lineas:
@@ -338,9 +367,9 @@ def mejorar_bullets(cv_texto: str) -> Dict:
                 mejorado = reescrito
                 tipos.append("verbo")
 
-        # 2. Agregar metrica si no tiene numeros (apropiada al sector)
+        # 2. Agregar metrica si no tiene numeros (apropiada al sector, sin repetir)
         if not tiene_metrica(mejorado):
-            mejorado = agregar_metrica_a_bullet(mejorado, contadores, sector)
+            mejorado = agregar_metrica_a_bullet(mejorado, contadores, sector, usados)
             tipos.append("metrica")
 
         if tipos and mejorado.strip() != linea.strip():

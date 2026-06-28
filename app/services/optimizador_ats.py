@@ -331,6 +331,7 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[Dict]:
     n_verb = n_met = 0
     sector = detectar_sector(_texto_de_mapa(mapa))
     contadores: Dict[str, int] = {}
+    usados: set = set()          # plantillas ya usadas (evita repetir mejoras)
     for job in mapa["experiencia"]:
         nuevos = []
         for b in job["bullets"]:
@@ -340,7 +341,7 @@ def enriquecer(mapa: Dict, vacante_texto: str) -> List[Dict]:
                     b = rb
                     n_verb += 1
             if len(b) >= 40 and not tiene_metrica(b):
-                b = b.rstrip().rstrip(".") + ", " + sufijo_metrica(b, contadores, sector) + "."
+                b = b.rstrip().rstrip(".") + ", " + sufijo_metrica(b, contadores, sector, usados) + "."
                 n_met += 1
             nuevos.append(b)
         job["bullets"] = nuevos
