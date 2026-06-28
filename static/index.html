@@ -1805,12 +1805,20 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
       <div style="text-align:center;margin-top:.6rem">
         <button class="btn-upload" data-act="usarcv" data-arg="bullets"><i class="ti ti-file-text" aria-hidden="true"></i> Usar el CV que pegué en «Adaptar»</button>
       </div>
+      <div style="text-align:center;margin-top:.55rem">
+        <label style="font-size:.82rem;color:var(--muted);display:inline-flex;align-items:center;gap:.4rem;cursor:pointer">
+          <input type="checkbox" id="bullets-ia" />
+          <span><i class="ti ti-sparkles" aria-hidden="true"></i> Mejorar con IA <span style="font-size:.72rem;opacity:.8">— redacción contextual al rol (si está configurada; si no, usa reglas)</span></span>
+        </label>
+      </div>
       <div id="bullets-file-status" class="upload-status" style="text-align:center;margin-top:.85rem"></div>
     </div>
 
     <div id="bullets-resultado" style="display:none;margin-top:1.5rem">
       <div class="card">
         <p id="bullets-resumen" style="font-size:.95rem"></p>
+        <div id="bullets-fuente" style="font-size:.78rem;color:var(--muted);margin-top:.3rem"></div>
+        <ul id="bullets-recos" style="margin:.55rem 0 0;padding-left:1.1rem;font-size:.86rem"></ul>
       </div>
       <div id="bullets-lista"></div>
     </div>
@@ -2023,6 +2031,6 @@ Soy desarrollador backend con 4 años de experiencia en Python y FastAPI. Trabaj
 </div><!-- /container -->
 </section><!-- /app-section -->
 
-<script src="/static/app.js?v=2026-06-24" defer></script>
+<script src="/static/app.js?v=2026-06-28" defer></script>
 </body>
 </html>

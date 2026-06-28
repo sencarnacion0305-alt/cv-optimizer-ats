@@ -930,14 +930,15 @@ def _generar_notas(
     else:
         notas.append(
             "Buena compatibilidad. Refuerza el impacto con métricas cuantificables "
-            "(%, tiempos, escala de incidentes manejados, etc.)."
+            "(%, tiempos, escala de proyectos/usuarios, etc.)."
         )
 
     if not re.search(r"\d+\s*%|\d+\s*(usuarios|clientes|incidentes|alerts|tickets|casos)",
                      cv_texto, re.IGNORECASE):
+        # Ejemplo acorde al sector del CV (no jerga de seguridad si no aplica, 4.2).
+        from app.services.mejorador_bullets import ejemplo_metricas
         notas.append(
-            "Agrega métricas concretas: «Respondí X incidentes por semana», "
-            "«Reduje el MTTR en un 30%», «Analicé Y alertas diarias»."
+            f"Agrega métricas concretas: {ejemplo_metricas(cv_texto)}."
         )
 
     if len(cubiertas) < 3:

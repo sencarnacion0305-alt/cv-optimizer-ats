@@ -181,7 +181,7 @@ def _construir_resumen_completo(
     """
     base = texto_original.strip()
     if not base:
-        base = "Cybersecurity professional with experience in threat detection and incident response."
+        base = "Profesional con experiencia demostrada y orientación a resultados."
 
     # Priorizar las keywords que faltan (sugeridas) antes que las ya cubiertas
     todas_kw   = sugeridas + cubiertas

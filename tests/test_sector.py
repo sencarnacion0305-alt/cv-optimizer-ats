@@ -9,9 +9,17 @@ def test_detecta_marketing():
         "Marketing Manager leading brand strategy and social media campaigns") == "marketing"
 
 
-def test_detecta_tech():
+def test_detecta_seguridad():
+    # Tras 4.2 "seguridad" se separa de "tech": un perfil de SOC/SIEM/malware es
+    # de seguridad (y solo este recibe jerga como MTTR/incidentes).
     assert detectar_sector(
-        "Security Analyst at the SOC investigating malware incidents with SIEM") == "tech"
+        "Security Analyst at the SOC investigating malware incidents with SIEM") == "seguridad"
+
+
+def test_detecta_tech_generico():
+    # Un developer genérico NO es "seguridad" (no debe recibir jerga de ciberseguridad).
+    assert detectar_sector(
+        "Backend Developer building APIs with Python, Docker and microservices") == "tech"
 
 
 def test_detecta_ventas():

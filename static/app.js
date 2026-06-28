@@ -1381,6 +1381,8 @@
   async function analizarBullets(fuente) {
     const src = _fuenteCV(fuente);
     if (!src) return;
+    const iaChk = document.getElementById("bullets-ia");
+    if (iaChk && iaChk.checked) src.form.append("usar_ia", "true");
     const status    = document.getElementById("bullets-file-status");
     const resultado = document.getElementById("bullets-resultado");
     status.className = "upload-status";
@@ -1404,6 +1406,21 @@
 
   function renderBullets(d) {
     document.getElementById("bullets-resumen").textContent = d.resumen;
+
+    // Fuente (IA vs reglas) y recomendaciones contextuales.
+    const fuenteEl = document.getElementById("bullets-fuente");
+    const iaChk = document.getElementById("bullets-ia");
+    if (d.fuente === "ia") {
+      fuenteEl.innerHTML = `<i class="ti ti-sparkles" aria-hidden="true"></i> Generado por IA, adaptado a tu perfil. Ajusta los valores marcados a tus cifras reales.`;
+    } else if (iaChk && iaChk.checked) {
+      fuenteEl.textContent = "Generado por reglas (la IA no está disponible ahora).";
+    } else {
+      fuenteEl.textContent = "";
+    }
+    const recos = document.getElementById("bullets-recos");
+    recos.innerHTML = (d.recomendaciones || [])
+      .map(r => `<li>${escapeHtml(r)}</li>`).join("");
+
     const cont = document.getElementById("bullets-lista");
     cont.innerHTML = "";
     if (!d.mejoras || !d.mejoras.length) {
@@ -1414,6 +1431,8 @@
       const badges = (m.tipos || []).map(t =>
         t === "verbo"
           ? `<span class="bullet-badge b-verbo">Verbo de acción</span>`
+          : t === "ia"
+          ? `<span class="bullet-badge b-verbo">Reescrito con IA</span>`
           : `<span class="bullet-badge b-metrica">Métrica añadida</span>`
       ).join(" ");
       const nota = m.metrica_agregada

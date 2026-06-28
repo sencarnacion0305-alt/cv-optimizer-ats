@@ -452,10 +452,13 @@ def _analizar_contenido(lineas: List[str]) -> Tuple[List[Dict], int, int]:
         prop_con = len(con_metrica) / len(logros)
         if prop_con < 0.3:
             penalizacion += 10
+            # Ejemplo de cifras acorde al sector del CV, no jerga de seguridad (4.2).
+            from app.services.mejorador_bullets import ejemplo_metricas
+            ej = ejemplo_metricas("\n".join(lineas))
             checks.append(_check(
                 "warning", "Pocas métricas cuantificables",
                 f"Solo {len(con_metrica)} de {len(logros)} logros tienen números. "
-                "Agrega cifras: «Reduje el MTTR un 60%», «Analicé 100+ alertas/semana»."))
+                f"Agrega cifras: {ej}."))
         elif prop_con < 0.6:
             penalizacion += 4
             checks.append(_check(

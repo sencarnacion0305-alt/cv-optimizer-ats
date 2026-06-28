@@ -238,13 +238,16 @@ async def parsing_ats_endpoint(archivo: UploadFile = File(None), cv_texto: str =
 
 
 @router.post("/mejorar-bullets")
-async def mejorar_bullets_endpoint(archivo: UploadFile = File(None), cv_texto: str = Form("")):
+async def mejorar_bullets_endpoint(archivo: UploadFile = File(None), cv_texto: str = Form(""),
+                                   usar_ia: bool = Form(False), vacante: str = Form("")):
     """
     Reescribe bullets con verbos débiles. Acepta archivo (.docx/.pdf) o texto pegado.
+    Si `usar_ia` y hay ANTHROPIC_API_KEY configurada, genera con IA (Sonnet 4.6) con
+    fallback automático a reglas; si no, usa reglas.
     """
     texto = await _texto_de_entrada(archivo, cv_texto)
     try:
-        return mejorar_bullets(texto)
+        return mejorar_bullets(texto, usar_ia=usar_ia, vacante=vacante)
     except HTTPException:
         raise
     except Exception:

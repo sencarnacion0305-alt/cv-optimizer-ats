@@ -149,10 +149,18 @@ _PLANTILLAS_METRICA = {
 # Evita aplicar jerga de IT/ciberseguridad a perfiles de otros sectores
 # (p. ej. no usar "incidentes" para un Marketing Manager).
 _SECTOR_PATRONES = [
+    # «seguridad» va PRIMERO y separado de «tech»: así la jerga de ciberseguridad
+    # (MTTR, incidentes, alertas, amenazas) solo se aplica a perfiles de seguridad,
+    # nunca a un developer/devops/data genérico (bug 4.2).
+    ("seguridad", r"cybersec|cyber security|ciberseg|seguridad inform|information security|"
+                  r"infosec|\bsoc\b|\bsiem\b|\bsoar\b|\bedr\b|\bxdr\b|\bcsirt\b|"
+                  r"incident response|respuesta a incidentes|threat|amenaza|vulnerab|"
+                  r"pentest|penetration test|forensic|forense|malware|ransomware|"
+                  r"phishing|blue team|red team|analista de seguridad|security analyst"),
     ("tech",      r"software|desarroll|developer|engineer|ingenier|programm|program|"
-                  r"cyber|ciberseg|security|seguridad inform|\bsoc\b|siem|devops|"
-                  r"cloud|backend|frontend|sysadmin|network|\bredes\b|data scien|"
-                  r"machine learning|\bit\b|infraestructura|\bqa\b|testing"),
+                  r"devops|cloud|backend|frontend|full\s*stack|sysadmin|network|"
+                  r"\bredes\b|data scien|machine learning|\bit\b|infraestructura|"
+                  r"\bqa\b|testing|\bapi\b|microservic|kubernetes|docker"),
     ("marketing", r"marketing|\bbrand\b|marca|\bseo\b|\bsem\b|social media|"
                   r"redes sociales|content|contenido|community|campaign|campañ|"
                   r"publicidad|comunicaci|growth|engagement"),
@@ -170,6 +178,11 @@ _SECTOR_PATRONES = [
 ]
 
 _PLANTILLAS_SECTOR = {
+    "tech":        ["reduciendo el tiempo de despliegue en ~30%",
+                    "mejorando el rendimiento en ~25%", "cubriendo ~10 servicios",
+                    "reduciendo los errores en producción en ~40%",
+                    "automatizando el ~80% del flujo de trabajo",
+                    "dando servicio a 1M+ usuarios", "logrando un ~99% de disponibilidad"],
     "marketing":   ["aumentando el engagement en ~30%", "ampliando el alcance a ~50K usuarios",
                     "mejorando la conversión en ~20%", "gestionando un presupuesto de ~$50K",
                     "mejorando el ROI en ~25%", "en ~10 campañas"],
@@ -202,6 +215,27 @@ def detectar_sector(texto: str) -> str:
     return mejor
 
 
+# Ejemplo de métricas APROPIADO AL SECTOR para las recomendaciones de texto
+# ("Agrega cifras: …"). Evita sugerir MTTR/incidentes a un perfil no-seguridad (4.2).
+_EJEMPLO_METRICAS = {
+    "seguridad":   "«Reduje el MTTR un 30%», «Analicé 100+ alertas por semana»",
+    "tech":        "«Reduje la latencia un 30%», «Automaticé el 80% de los despliegues»",
+    "marketing":   "«Aumenté el engagement un 30%», «Generé 50K leads»",
+    "ventas":      "«Superé la cuota un 20%», «Cerré 30 acuerdos por trimestre»",
+    "finanzas":    "«Reduje costos un 15%», «Gestioné un presupuesto de $1M»",
+    "rrhh":        "«Reduje el tiempo de contratación un 30%», «Incorporé a 50 personas»",
+    "salud":       "«Atendí a 200 pacientes al mes», «Mejoré los resultados un 20%»",
+    "educacion":   "«Enseñé a 120 estudiantes», «Subí la tasa de aprobación un 15%»",
+    "operaciones": "«Reduje el tiempo de entrega un 25%», «Optimicé 15 procesos»",
+    "general":     "«Mejoré la eficiencia un 25%», «Ahorré 10 horas a la semana»",
+}
+
+
+def ejemplo_metricas(cv_texto: str) -> str:
+    """Ejemplo de cifras a imitar, elegido según el sector dominante del CV."""
+    return _EJEMPLO_METRICAS.get(detectar_sector(cv_texto), _EJEMPLO_METRICAS["general"])
+
+
 def _categoria_metrica(texto_low: str) -> str:
     for cat, patron in _CATEGORIAS_METRICA:
         if re.search(patron, texto_low):
@@ -220,10 +254,13 @@ def sufijo_metrica(bullet: str, contadores: Dict[str, int], sector: str = "tech"
     if usados is None:
         usados = set()
     low = bullet.lower()
-    pools = _PLANTILLAS_METRICA if sector == "tech" else _PLANTILLAS_SECTOR
-    cat = _categoria_metrica(low) if sector == "tech" else sector
-    opciones = pools.get(cat, _PLANTILLAS_METRICA["default"] if sector == "tech"
-                         else _PLANTILLAS_SECTOR["general"])
+    # Solo los perfiles de SEGURIDAD usan el pool categórico con jerga de
+    # ciberseguridad; el resto (tech genérico, marketing, etc.) usa su propio pool.
+    es_seg = sector == "seguridad"
+    pools = _PLANTILLAS_METRICA if es_seg else _PLANTILLAS_SECTOR
+    cat = _categoria_metrica(low) if es_seg else sector
+    opciones = pools.get(cat, _PLANTILLAS_METRICA["default"] if es_seg
+                         else _PLANTILLAS_SECTOR.get(sector, _PLANTILLAS_SECTOR["general"]))
 
     def _repite_palabra(cand: str) -> bool:
         return any(w in low for w in re.findall(r"[a-z]{5,}", cand.lower()))
@@ -339,23 +376,101 @@ def _es_bullet_de_logro(linea: str) -> bool:
     return _empieza_con_verbo_accion(linea) or _es_bullet_debil(linea)
 
 
-def mejorar_bullets(cv_texto: str) -> Dict:
+# Jerga de ciberseguridad: si la IA la usa en un perfil no-seguridad, se descarta
+# su salida y se cae a reglas (mantiene la garantía de 4.2 también con IA).
+_JERGA_SEG = re.compile(r"mttr|incidente|amenaza|vulnerab|phishing|siem|\bsoc\b",
+                        re.IGNORECASE)
+
+
+def _validar_ia_bullet(mejorado: str, sector: str) -> Optional[str]:
+    """
+    Sanea la salida del modelo: convierte cualquier cifra real en marcador editable
+    y rechaza (None) si filtra jerga de seguridad a un perfil que no es de seguridad.
+    """
+    saneado = _a_placeholder(mejorado).strip()
+    if not saneado:
+        return None
+    if sector != "seguridad" and _JERGA_SEG.search(saneado):
+        return None
+    return saneado
+
+
+def _mejorar_con_ia(candidatos: List[str], sector: str, cv_texto: str,
+                    vacante: str) -> Optional[Dict]:
+    """Camino IA: una llamada batched + validación. Devuelve la respuesta o None."""
+    from app.services import llm_client
+    if not candidatos or not llm_client.disponible():
+        return None
+    datos = llm_client.generar_bullets(candidatos, rol=sector, vacante=vacante)
+    if not datos:
+        return None
+
+    mejoras: List[Dict] = []
+    n_metricas = 0
+    for it in datos["bullets"]:
+        original = it.get("original") or ""
+        saneado = _validar_ia_bullet(it.get("mejorado", ""), sector)
+        if saneado is None or saneado.strip() == original.strip():
+            continue
+        tiene_ph = bool(re.search(r"\[(number|% estimado|\$ amount)\]", saneado))
+        if tiene_ph:
+            n_metricas += 1
+        mejoras.append({
+            "original": original,
+            "mejorado": saneado,
+            "tipos": ["ia"],
+            "metrica_agregada": tiene_ph,
+        })
+
+    if not mejoras:               # nada utilizable -> que el caller use reglas
+        return None
+
+    consejos = [c for c in datos.get("consejos", []) if c]
+    resumen = (f"La IA reescribió {len(mejoras)} bullet(s) adaptados a tu perfil"
+               + (" y sugirió recomendaciones." if consejos else "."))
+    if n_metricas:
+        resumen += " " + ADVERTENCIA_METRICAS
+    return {
+        "total_mejoras": len(mejoras),
+        "n_verbos": len(mejoras),
+        "n_metricas": n_metricas,
+        "mejoras": mejoras,
+        "recomendaciones": consejos,
+        "resumen": resumen,
+        "advertencia": ADVERTENCIA_METRICAS if n_metricas else "",
+        "fuente": "ia",
+        "ia_disponible": True,
+    }
+
+
+def mejorar_bullets(cv_texto: str, usar_ia: bool = False,
+                    vacante: str = "") -> Dict:
     # Unidades de logro por LÍNEAS y ORACIONES (funciona con prosa, no solo viñetas).
     # Import diferido para evitar ciclo (core importa este módulo).
     from app.core.cv_analyzer import unidades_logro
+    from app.services import llm_client
     lineas = unidades_logro(cv_texto)
     sector = detectar_sector(cv_texto)
+    ia_disponible = llm_client.disponible()
+
+    candidatos = [
+        l for l in lineas
+        if 20 <= len(l) <= 320 and _es_bullet_de_logro(l)
+    ]
+
+    # Camino IA (opt-in): si está activado y disponible, se intenta; ante cualquier
+    # fallo o salida no válida, se cae transparentemente al motor de reglas.
+    if usar_ia and ia_disponible:
+        ia = _mejorar_con_ia(candidatos, sector, cv_texto, vacante)
+        if ia is not None:
+            return ia
 
     mejoras: List[Dict] = []
     contadores: Dict[str, int] = {}
     usados: set = set()          # plantillas ya usadas en este CV (evita repetición)
     n_verbos = n_metricas = 0
 
-    for linea in lineas:
-        if len(linea) < 20 or len(linea) > 320:
-            continue
-        if not _es_bullet_de_logro(linea):
-            continue
+    for linea in candidatos:
 
         mejorado = linea
         tipos: List[str] = []
@@ -402,7 +517,11 @@ def mejorar_bullets(cv_texto: str) -> Dict:
         "n_verbos": n_verbos,
         "n_metricas": n_metricas,
         "mejoras": mejoras,
+        "recomendaciones": [],
         "resumen": resumen,
         # Advertencia explícita: las métricas sugeridas son marcadores, no datos reales.
         "advertencia": ADVERTENCIA_METRICAS if n_metricas else "",
+        "fuente": "reglas",
+        # Indica al frontend si puede ofrecer el botón "Mejorar con IA".
+        "ia_disponible": ia_disponible,
     }
