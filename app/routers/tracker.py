@@ -31,9 +31,8 @@ def usuario_actual() -> str:
     """
     raise HTTPException(
         status_code=501,
-        detail=("Sincronización en la nube no configurada. El tracker funciona en modo "
-                "local (privado). Para sincronizar, configura la autenticación de cuenta "
-                "(ver app/routers/tracker.py)."),
+        detail=("La sincronización en la nube aún no está disponible. Por ahora tus datos "
+                "se guardan de forma privada en este navegador (modo local)."),
     )
 
 

@@ -1616,13 +1616,14 @@
     const st = document.getElementById("trk-sync-status");
     if (!st) return;
     st.textContent = "Probando…";
+    // Mensaje fijo orientado al usuario: nunca exponemos detalles internos del backend.
+    const aviso = "La sincronización en la nube estará disponible próximamente. Por ahora tus datos se guardan de forma privada en este navegador.";
     try {
       const r = await fetch("/api/v1/tracker");
-      const j = await r.json().catch(() => ({}));
       if (r.ok) st.innerHTML = `<span style="color:#166534">✓ Sincronización activa.</span>`;
-      else st.innerHTML = `<span style="color:#92400e">⚙️ ${escapeHtml(j.detail || ("Sync no configurada (modo local activo). Error " + r.status))}</span>`;
+      else st.innerHTML = `<span style="color:#92400e">${escapeHtml(aviso)}</span>`;
     } catch (e) {
-      st.innerHTML = `<span style="color:#DC2626">No se pudo contactar el servidor.</span>`;
+      st.innerHTML = `<span style="color:#92400e">${escapeHtml(aviso)}</span>`;
     }
   }
 
